@@ -132,10 +132,13 @@ body {
 .input-wrapper svg {
     position: absolute;
     left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
     width: 20px;
     height: 20px;
     color: var(--text-gray);
     transition: color 0.3s ease;
+    pointer-events: none;
 }
 
 .input-wrapper input {

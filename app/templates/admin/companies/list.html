@@ -55,7 +55,11 @@
                 </svg>
             </div>
             <div class="stat-info">
-                <h3>{{ companies|sum(attribute='clients.count') }}</h3>
+                {% set ns = namespace(total=0) %}
+                {% for company in companies %}
+                    {% set ns.total = ns.total + company.clients.filter_by(is_active=True).count() %}
+                {% endfor %}
+                <h3>{{ ns.total }}</h3>
                 <p>Total de Clientes</p>
             </div>
         </div>
