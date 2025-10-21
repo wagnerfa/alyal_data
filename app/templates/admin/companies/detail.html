@@ -1,0 +1,521 @@
+{% extends "base.html" %}
+
+{% block title %}{{ company.name }} - Alyal Analytics{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="detail-header">
+        <a href="{{ url_for('admin.companies_list') }}" class="back-button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Voltar
+        </a>
+
+        <div class="company-header-info">
+            <div class="company-avatar-large">
+                {{ company.name[0].upper() }}
+            </div>
+            <div class="company-meta">
+                <h1>{{ company.name }}</h1>
+                <div class="company-badges">
+                    {% if company.is_active %}
+                    <span class="badge badge-success">Ativa</span>
+                    {% else %}
+                    <span class="badge badge-danger">Inativa</span>
+                    {% endif %}
+                    <span class="badge badge-info">{{ clients|length }} cliente(s)</span>
+                </div>
+            </div>
+        </div>
+
+        {% if current_user.is_gestor() %}
+        <div class="header-actions">
+            <a href="{{ url_for('admin.companies_edit', company_id=company.id) }}" class="btn btn-secondary">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+                Editar Empresa
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="detail-grid">
+        <div class="info-card">
+            <h2>Informações da Empresa</h2>
+            <div class="info-list">
+                <div class="info-item">
+                    <span class="info-label">CNPJ:</span>
+                    <span class="info-value">{{ company.cnpj or 'Não informado' }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">E-mail:</span>
+                    <span class="info-value">{{ company.email or 'Não informado' }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Telefone:</span>
+                    <span class="info-value">{{ company.phone or 'Não informado' }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Data de Cadastro:</span>
+                    <span class="info-value">{{ company.created_at.strftime('%d/%m/%Y às %H:%M') }}</span>
+                </div>
+                {% if company.updated_at != company.created_at %}
+                <div class="info-item">
+                    <span class="info-label">Última Atualização:</span>
+                    <span class="info-value">{{ company.updated_at.strftime('%d/%m/%Y às %H:%M') }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="clients-card">
+            <div class="card-header">
+                <h2>Clientes da Empresa</h2>
+                {% if current_user.is_gestor() %}
+                <button class="btn btn-primary btn-sm" onclick="showAddClientModal()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    Adicionar Cliente
+                </button>
+                {% endif %}
+            </div>
+
+            {% if clients %}
+            <div class="clients-list">
+                {% for client in clients %}
+                <div class="client-item" data-client-id="{{ client.id }}">
+                    <div class="client-avatar">
+                        {{ client.username[0].upper() }}
+                    </div>
+                    <div class="client-info">
+                        <strong>{{ client.username }}</strong>
+                        <span class="client-email">{{ client.email }}</span>
+                        <span class="client-date">Cadastrado em {{ client.created_at.strftime('%d/%m/%Y') }}</span>
+                    </div>
+                    <div class="client-status">
+                        {% if client.is_active %}
+                        <span class="badge badge-success">Ativo</span>
+                        {% else %}
+                        <span class="badge badge-danger">Inativo</span>
+                        {% endif %}
+                    </div>
+                    {% if current_user.is_gestor() %}
+                    <div class="client-actions">
+                        <button class="btn-action btn-edit"
+                                onclick="editClient({{ client.id }})"
+                                title="Editar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </button>
+                        {% if client.is_active %}
+                        <button class="btn-action btn-delete"
+                                onclick="deleteClient({{ client.id }}, '{{ client.username }}')"
+                                title="Desativar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state-small">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <p>Nenhum cliente cadastrado</p>
+                {% if current_user.is_gestor() %}
+                <button class="btn btn-primary btn-sm" onclick="showAddClientModal()">
+                    Adicionar Primeiro Cliente
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal para adicionar/editar cliente -->
+<div id="clientModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Adicionar Cliente</h2>
+            <button class="modal-close" onclick="closeClientModal()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <form id="clientForm">
+            <input type="hidden" id="clientId" name="client_id">
+
+            <div class="form-group">
+                <label for="username">Nome de Usuário <span class="required">*</span></label>
+                <input type="text" id="username" name="username" required placeholder="Ex: joaosilva">
+            </div>
+
+            <div class="form-group">
+                <label for="clientEmail">E-mail <span class="required">*</span></label>
+                <input type="email" id="clientEmail" name="email" required placeholder="usuario@email.com">
+            </div>
+
+            <div class="form-group">
+                <label for="password">
+                    Senha <span class="required" id="passwordRequired">*</span>
+                </label>
+                <input type="password" id="password" name="password" placeholder="Mínimo 6 caracteres">
+                <small class="help-text" id="passwordHelp">Deixe em branco para manter a senha atual</small>
+            </div>
+
+            <div class="form-group" id="isActiveGroup" style="display: none;">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="clientIsActive" name="is_active" checked>
+                    <span class="checkbox-custom"></span>
+                    Cliente Ativo
+                </label>
+            </div>
+
+            <div id="modalErrorMessage" class="error-message"></div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeClientModal()">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <span id="submitText">Adicionar Cliente</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.admin-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.detail-header {
+    margin-bottom: 2rem;
+}
+
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+    transition: color 0.2s ease;
+}
+
+.back-button:hover {
+    color: var(--primary-color);
+}
+
+.company-header-info {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.company-avatar-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 2rem;
+}
+
+.company-meta h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.company-badges {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 1.5rem;
+}
+
+.info-card,
+.clients-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.info-card h2,
+.clients-card h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.card-header h2 {
+    margin-bottom: 0;
+}
+
+.info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.info-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-value {
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.clients-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.client-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--background-light);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+.client-item:hover {
+    background: var(--border-color);
+    transform: translateX(4px);
+}
+
+.client-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.client-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.client-info strong {
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.client-email {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.client-date {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.client-status {
+    flex-shrink: 0;
+}
+
+.client-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.empty-state-small {
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
+.empty-state-small svg {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+.empty-state-small p {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.modal-header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background: var(--background-light);
+    color: var(--text-primary);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .company-header-info {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .header-actions {
+        width: 100%;
+    }
+
+    .header-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .client-item {
+        flex-wrap: wrap;
+    }
+
+    .client-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+</style>
+
+<script>
+const companyId = {{ company.id }};
+</script>
+<script src="{{ url_for('static', filename='js/admin/companies.js') }}"></script>
+{% endblock %}

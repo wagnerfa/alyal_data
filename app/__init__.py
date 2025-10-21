@@ -16,8 +16,9 @@ def create_app(config_class=Config):
     login_manager.login_view = 'auth.login'
     login_manager.login_message = 'Por favor, faça login para acessar esta página.'
 
-    from app.routes import auth, main
+    from app.routes import auth, main, admin
     app.register_blueprint(auth.bp)
     app.register_blueprint(main.bp)
+    app.register_blueprint(admin.bp)
 
     return app
