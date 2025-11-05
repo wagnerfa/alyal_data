@@ -2,6 +2,7 @@ from flask import redirect, render_template, url_for
 from flask_login import current_user, login_required
 
 from app.dashboard import dashboard_bp
+from app.models import User
 
 
 def _redirect_to_role_dashboard():
@@ -21,7 +22,8 @@ def dashboard_index():
 def manager_dashboard():
     if not current_user.is_manager():
         return _redirect_to_role_dashboard()
-    return render_template('dashboard_manager.html', user=current_user)
+    users = User.query.order_by(User.username.asc()).all()
+    return render_template('dashboard_manager.html', user=current_user, users=users)
 
 
 @dashboard_bp.route('/user')
