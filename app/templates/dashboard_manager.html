@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Gestor - Sistema Flask{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <h1>Dashboard do Gestor</h1>
+        <div class="user-info">
+            <div class="user-details">
+                <h3>{{ user.username }}</h3>
+                <span class="badge badge-manager">Gestor</span>
+            </div>
+            <div class="user-avatar">
+                {{ user.username[0].upper() }}
+            </div>
+            <a href="{{ url_for('auth.logout') }}" class="btn-logout">Sair</a>
+        </div>
+    </div>
+    
+    <div class="dashboard-grid">
+        <div class="dashboard-card">
+            <h3>👥 Total de Usuários</h3>
+            <p style="font-size: 36px; font-weight: 700; color: var(--color-primary); margin-top: 10px;">
+                <span class="counter" data-target="{{ users|length }}">0</span>
+            </p>
+            <p style="margin-top: 10px; color: rgba(255, 255, 255, 0.6);">Usuários registrados no sistema</p>
+        </div>
+        
+        <div class="dashboard-card">
+            <h3>🎯 Gestores Ativos</h3>
+            <p style="font-size: 36px; font-weight: 700; color: var(--color-secondary); margin-top: 10px;">
+                <span class="counter" data-target="{{ users|selectattr('role', 'equalto', 'manager')|list|length }}">0</span>
+            </p>
+            <p style="margin-top: 10px; color: rgba(255, 255, 255, 0.6);">Gestores no sistema</p>
+        </div>
+        
+        <div class="dashboard-card">
+            <h3>📊 Usuários Comuns</h3>
+            <p style="font-size: 36px; font-weight: 700; color: var(--color-warning); margin-top: 10px;">
+                <span class="counter" data-target="{{ users|selectattr('role', 'equalto', 'user')|list|length }}">0</span>
+            </p>
+            <p style="margin-top: 10px; color: rgba(255, 255, 255, 0.6);">Usuários padrão ativos</p>
+        </div>
+    </div>
+    
+    <div class="users-table">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2>Gerenciamento de Usuários</h2>
+            <input type="text" id="userSearch" placeholder="Buscar usuário..." style="padding: 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; width: 250px;">
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Usuário</th>
+                    <th>Email</th>
+                    <th>Tipo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>{{ u.id }}</td>
+                    <td>{{ u.username }}</td>
+                    <td>{{ u.email }}</td>
+                    <td>
+                        {% if u.role == 'manager' %}
+                            <span class="badge badge-manager">Gestor</span>
+                        {% else %}
+                            <span class="badge badge-user">Usuário</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
