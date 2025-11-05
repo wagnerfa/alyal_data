@@ -24,30 +24,30 @@
             <p style="font-size: 36px; font-weight: 700; color: var(--color-primary); margin-top: 10px;">
                 <span class="counter" data-target="{{ users|length }}">0</span>
             </p>
-            <p style="margin-top: 10px; color: rgba(255, 255, 255, 0.6);">Usuários registrados no sistema</p>
+            <p style="margin-top: 10px; color: var(--text-muted);">Usuários registrados no sistema</p>
         </div>
-        
+
         <div class="dashboard-card">
             <h3>🎯 Gestores Ativos</h3>
             <p style="font-size: 36px; font-weight: 700; color: var(--color-secondary); margin-top: 10px;">
                 <span class="counter" data-target="{{ users|selectattr('role', 'equalto', 'manager')|list|length }}">0</span>
             </p>
-            <p style="margin-top: 10px; color: rgba(255, 255, 255, 0.6);">Gestores no sistema</p>
+            <p style="margin-top: 10px; color: var(--text-muted);">Gestores no sistema</p>
         </div>
-        
+
         <div class="dashboard-card">
             <h3>📊 Usuários Comuns</h3>
             <p style="font-size: 36px; font-weight: 700; color: var(--color-warning); margin-top: 10px;">
                 <span class="counter" data-target="{{ users|selectattr('role', 'equalto', 'user')|list|length }}">0</span>
             </p>
-            <p style="margin-top: 10px; color: rgba(255, 255, 255, 0.6);">Usuários padrão ativos</p>
+            <p style="margin-top: 10px; color: var(--text-muted);">Usuários padrão ativos</p>
         </div>
     </div>
     
     <div class="users-table">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px; flex-wrap: wrap;">
             <h2>Gerenciamento de Usuários</h2>
-            <input type="text" id="userSearch" placeholder="Buscar usuário..." style="padding: 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; width: 250px;">
+            <input type="text" id="userSearch" placeholder="Buscar usuário...">
         </div>
         
         <table>
@@ -62,10 +62,10 @@
             <tbody>
                 {% for u in users %}
                 <tr>
-                    <td>{{ u.id }}</td>
-                    <td>{{ u.username }}</td>
-                    <td>{{ u.email }}</td>
-                    <td>
+                    <td data-label="ID">{{ u.id }}</td>
+                    <td data-label="Usuário">{{ u.username }}</td>
+                    <td data-label="Email">{{ u.email }}</td>
+                    <td data-label="Tipo">
                         {% if u.role == 'manager' %}
                             <span class="badge badge-manager">Gestor</span>
                         {% else %}

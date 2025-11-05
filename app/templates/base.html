@@ -6,9 +6,12 @@
     <title>{% block title %}Sistema Flask{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
+<body data-theme="light">
+    <button type="button" class="theme-toggle" id="themeToggle" aria-label="Alternar tema">
+        <span id="themeToggleIcon" aria-hidden="true">🌞</span>
+    </button>
     {% block content %}{% endblock %}
-    
+
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block extra_js %}{% endblock %}
 </body>
