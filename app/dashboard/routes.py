@@ -21,7 +21,7 @@ def dashboard_index():
 def manager_dashboard():
     if not current_user.is_manager():
         return _redirect_to_role_dashboard()
-    return render_template('dashboard_manager.html')
+    return render_template('dashboard_manager.html', user=current_user)
 
 
 @dashboard_bp.route('/user')
@@ -29,4 +29,4 @@ def manager_dashboard():
 def user_dashboard():
     if current_user.is_manager():
         return _redirect_to_role_dashboard()
-    return render_template('dashboard_user.html')
+    return render_template('dashboard_user.html', user=current_user)
