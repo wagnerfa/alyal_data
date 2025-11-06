@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard Usuário - Sistema Flask{% endblock %}
+{% block title %}Dashboard Usuário - Alyal{% endblock %}
 
 {% block content %}
 <div class="dashboard">
@@ -14,36 +14,77 @@
             <div class="user-avatar">
                 {{ user.username[0].upper() }}
             </div>
-            <a href="{{ url_for('auth.logout') }}" class="btn-logout">Sair</a>
         </div>
     </div>
-    
+
+    {% set action = url_for('dashboard.user_dashboard') %}
+    {% include '_partials/_filters.html' %}
+
+    {% include '_partials/_kpi_cards.html' %}
+
     <div class="dashboard-grid">
-        <div class="dashboard-card">
-            <h3>📊 Meu Perfil</h3>
-            <p><strong>Nome de usuário:</strong> {{ user.username }}</p>
-            <p><strong>Email:</strong> {{ user.email }}</p>
-            <p><strong>Tipo de conta:</strong> Usuário Padrão</p>
-        </div>
-        
-        <div class="dashboard-card">
-            <h3>📈 Estatísticas</h3>
-            <p>Você tem acesso ao sistema como usuário comum. Suas atividades e progresso serão mostrados aqui.</p>
-            <p style="margin-top: 15px;"><strong>Total de acessos:</strong> <span class="counter" data-target="47">0</span></p>
-        </div>
-        
-        <div class="dashboard-card">
-            <h3>📋 Tarefas Recentes</h3>
-            <p>• Atualização de perfil completa</p>
-            <p>• Login realizado com sucesso</p>
-            <p>• Configurações salvas</p>
+        {% set title = 'Faturamento diário' %}
+        {% set canvas_id = 'userRevenueChart' %}
+        {% set description = 'Evolução do faturamento considerando pedidos pagos, enviados e entregues.' %}
+        {% include '_partials/_chart_block.html' %}
+        <div class="dashboard-card insights-card">
+            <h3>Resumo do período</h3>
+            <ul class="insights-list">
+                {% for insight in insights %}
+                    <li>{{ insight }}</li>
+                {% else %}
+                    <li>Importe vendas para visualizar os indicadores.</li>
+                {% endfor %}
+            </ul>
         </div>
     </div>
-    
-    <div class="dashboard-card" style="margin-top: 20px;">
-        <h3>🎯 Bem-vindo ao Sistema</h3>
-        <p>Este é o seu painel de controle personalizado. Aqui você pode acompanhar suas atividades, gerenciar seu perfil e acessar todas as funcionalidades disponíveis para usuários.</p>
-        <p style="margin-top: 15px;">Explore as diferentes seções e aproveite ao máximo os recursos disponíveis!</p>
+
+    <div class="dashboard-card note-card">
+        <h3>Comentário do Gestor</h3>
+        {% if manager_note %}
+            <p class="manager-note-period">Período: {{ start_date.strftime('%d/%m/%Y') }} a {{ end_date.strftime('%d/%m/%Y') }}</p>
+            <p>{{ manager_note.conteudo }}</p>
+        {% else %}
+            <p>Nenhum comentário foi registrado pelo gestor para este período.</p>
+        {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const userCtx = document.getElementById('userRevenueChart');
+    if (userCtx) {
+        new Chart(userCtx, {
+            type: 'line',
+            data: {
+                labels: {{ timeseries_labels|tojson }},
+                datasets: [{
+                    label: 'Faturamento diário',
+                    data: {{ timeseries_values|tojson }},
+                    fill: false,
+                    borderColor: '#8082A6',
+                    backgroundColor: 'rgba(128, 130, 166, 0.25)',
+                    tension: 0.25,
+                    borderWidth: 3,
+                    pointRadius: 4,
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (value) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+</script>
 {% endblock %}
