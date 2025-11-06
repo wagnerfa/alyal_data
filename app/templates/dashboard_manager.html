@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard Gestor - Sistema Flask{% endblock %}
+{% block title %}Dashboard Gestor - Alyal{% endblock %}
 
 {% block content %}
 <div class="dashboard">
@@ -14,68 +14,107 @@
             <div class="user-avatar">
                 {{ user.username[0].upper() }}
             </div>
-            <a href="{{ url_for('auth.logout') }}" class="btn-logout">Sair</a>
         </div>
     </div>
-    
+
+    {% set action = url_for('dashboard.manager_dashboard') %}
+    {% include '_partials/_filters.html' %}
+
+    {% include '_partials/_kpi_cards.html' %}
+
+    <div class="dashboard-grid">
+        {% set title = 'Faturamento diário' %}
+        {% set canvas_id = 'managerRevenueChart' %}
+        {% set description = 'Somatório diário considerando pedidos pagos, enviados e entregues.' %}
+        {% include '_partials/_chart_block.html' %}
+        <div class="dashboard-card insights-card">
+            <h3>Insights automáticos</h3>
+            <ul class="insights-list">
+                {% for insight in insights %}
+                    <li>{{ insight }}</li>
+                {% else %}
+                    <li>Importe vendas para gerar insights do período.</li>
+                {% endfor %}
+            </ul>
+            <p class="insights-meta">Período anterior analisado: {{ previous_period[0].strftime('%d/%m/%Y') }} até {{ previous_period[1].strftime('%d/%m/%Y') }}.</p>
+        </div>
+    </div>
+
     <div class="dashboard-grid">
         <div class="dashboard-card">
-            <h3>👥 Total de Usuários</h3>
-            <p style="font-size: 36px; font-weight: 700; color: var(--color-primary); margin-top: 10px;">
-                <span class="counter" data-target="{{ users|length }}">0</span>
-            </p>
-            <p style="margin-top: 10px; color: rgba(255, 255, 255, 0.6);">Usuários registrados no sistema</p>
-        </div>
-        
-        <div class="dashboard-card">
-            <h3>🎯 Gestores Ativos</h3>
-            <p style="font-size: 36px; font-weight: 700; color: var(--color-secondary); margin-top: 10px;">
-                <span class="counter" data-target="{{ users|selectattr('role', 'equalto', 'manager')|list|length }}">0</span>
-            </p>
-            <p style="margin-top: 10px; color: rgba(255, 255, 255, 0.6);">Gestores no sistema</p>
-        </div>
-        
-        <div class="dashboard-card">
-            <h3>📊 Usuários Comuns</h3>
-            <p style="font-size: 36px; font-weight: 700; color: var(--color-warning); margin-top: 10px;">
-                <span class="counter" data-target="{{ users|selectattr('role', 'equalto', 'user')|list|length }}">0</span>
-            </p>
-            <p style="margin-top: 10px; color: rgba(255, 255, 255, 0.6);">Usuários padrão ativos</p>
-        </div>
-    </div>
-    
-    <div class="users-table">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2>Gerenciamento de Usuários</h2>
-            <input type="text" id="userSearch" placeholder="Buscar usuário..." style="padding: 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; width: 250px;">
-        </div>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Usuário</th>
-                    <th>Email</th>
-                    <th>Tipo</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for u in users %}
-                <tr>
-                    <td>{{ u.id }}</td>
-                    <td>{{ u.username }}</td>
-                    <td>{{ u.email }}</td>
-                    <td>
-                        {% if u.role == 'manager' %}
-                            <span class="badge badge-manager">Gestor</span>
-                        {% else %}
-                            <span class="badge badge-user">Usuário</span>
-                        {% endif %}
-                    </td>
-                </tr>
+            <h3>Curva ABC rápida</h3>
+            <p class="card-description">Top SKUs por faturamento no período selecionado. Consulte a visão completa em <a href="{{ url_for('dashboard.abc_view', start_date=start_date.isoformat(), end_date=end_date.isoformat(), marketplace_id=selected_marketplace) }}">Produtos (ABC)</a>.</p>
+            <ul class="abc-preview">
+                {% for item in abc_data %}
+                    <li>
+                        <strong>{{ item.sku }}</strong>
+                        <span>{{ item.nome_produto }}</span>
+                        <span>{{ item.faturamento|currency_br }} • {{ item.percentual|decimal_br(1) }}% • Classe {{ item.classe }}</span>
+                    </li>
+                {% else %}
+                    <li>Nenhuma venda encontrada para o período.</li>
                 {% endfor %}
-            </tbody>
-        </table>
+            </ul>
+        </div>
+        <div class="dashboard-card note-card">
+            <h3>Comentário do Gestor</h3>
+            <form method="post">
+                <input type="hidden" name="start_date" value="{{ start_date.isoformat() }}">
+                <input type="hidden" name="end_date" value="{{ end_date.isoformat() }}">
+                {% if selected_marketplace %}
+                    <input type="hidden" name="marketplace_id" value="{{ selected_marketplace }}">
+                {% endif %}
+                <div class="form-group">
+                    <label for="managerNote">Comentário</label>
+                    <textarea id="managerNote" name="manager_note" rows="6" placeholder="Compartilhe orientações para o período">{{ manager_note.conteudo if manager_note else '' }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Salvar comentário</button>
+            </form>
+        </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const revenueCtx = document.getElementById('managerRevenueChart');
+    if (revenueCtx) {
+        new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: {{ timeseries_labels|tojson }},
+                datasets: [{
+                    label: 'Faturamento diário',
+                    data: {{ timeseries_values|tojson }},
+                    fill: false,
+                    borderColor: '#AFA9D9',
+                    backgroundColor: 'rgba(175, 169, 217, 0.3)',
+                    tension: 0.25,
+                    borderWidth: 3,
+                    pointRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (value) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            }
+        });
+    }
+</script>
 {% endblock %}

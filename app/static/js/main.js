@@ -1,7 +1,36 @@
 // Animações e interatividade
 
 document.addEventListener('DOMContentLoaded', function() {
-    
+
+    // Tema claro/escuro
+    const body = document.body;
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeToggleIcon');
+
+    const applyTheme = (theme) => {
+        const normalizedTheme = theme === 'dark' ? 'dark' : 'light';
+        body.setAttribute('data-theme', normalizedTheme);
+        if (themeToggle) {
+            themeToggle.setAttribute('aria-pressed', normalizedTheme === 'dark');
+            themeToggle.setAttribute('aria-label', normalizedTheme === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro');
+        }
+        if (themeIcon) {
+            themeIcon.textContent = normalizedTheme === 'dark' ? '🌙' : '🌞';
+        }
+    };
+
+    const storedTheme = localStorage.getItem('preferredTheme');
+    applyTheme(storedTheme || 'light');
+
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = body.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+            const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(nextTheme);
+            localStorage.setItem('preferredTheme', nextTheme);
+        });
+    }
+
     // Auto-fechar alertas após 5 segundos
     const alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => {
@@ -12,13 +41,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Validação de formulário de login
-    const loginForm = document.querySelector('form');
+    const loginForm = document.querySelector('form[action*="auth/login"]');
     if (loginForm) {
         loginForm.addEventListener('submit', function(e) {
             const username = document.querySelector('input[name="username"]');
             const password = document.querySelector('input[name="password"]');
-            
-            if (!username.value.trim() || !password.value.trim()) {
+
+            if (!username || !password || !username.value.trim() || !password.value.trim()) {
                 e.preventDefault();
                 showAlert('Por favor, preencha todos os campos', 'error');
             }
