@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body data-theme="light" class="{% if current_user.is_authenticated %}app-layout{% else %}auth-layout{% endif %}">
-    <button type="button" class="theme-toggle" id="themeToggle" aria-label="Alternar tema">
+    <button type="button" class="theme-toggle theme-toggle-fixed" id="themeToggle" aria-label="Alternar tema">
         <span id="themeToggleIcon" aria-hidden="true">🌞</span>
     </button>
     {% if current_user.is_authenticated %}

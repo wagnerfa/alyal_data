@@ -101,6 +101,38 @@ body[data-theme="dark"] {
     outline: none;
 }
 
+/* Alturas consistentes para gráficos */
+.chart-wrap {
+    position: relative;
+    height: 280px;
+    max-height: 320px;
+}
+
+@media (max-width: 1024px) {
+    .chart-wrap {
+        height: 240px;
+    }
+}
+
+@media (max-width: 640px) {
+    .chart-wrap {
+        height: 200px;
+    }
+}
+
+.chart-wrap > canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Botão de tema fixo no topo direito */
+.theme-toggle-fixed {
+    position: fixed;
+    top: 12px;
+    right: 16px;
+    z-index: 9999;
+}
+
 /* Container principal */
 .container {
     width: 100%;

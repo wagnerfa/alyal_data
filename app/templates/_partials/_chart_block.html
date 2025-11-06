@@ -5,5 +5,7 @@
             <p class="chart-caption">{{ description }}</p>
         {% endif %}
     </div>
-    <canvas id="{{ canvas_id }}" height="{{ height|default(240) }}"></canvas>
+    <div class="chart-wrap">
+        <canvas id="{{ canvas_id }}"></canvas>
+    </div>
 </div>

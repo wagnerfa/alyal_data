@@ -70,6 +70,7 @@
                         backgroundColor: 'rgba(175, 169, 217, 0.55)',
                         borderColor: '#AFA9D9',
                         borderWidth: 2,
+                        maxBarThickness: 36,
                         yAxisID: 'y',
                     },
                     {
@@ -86,6 +87,8 @@
                 ]
             },
             options: {
+                responsive: true,
+                maintainAspectRatio: false,
                 scales: {
                     y: {
                         beginAtZero: true,
@@ -105,7 +108,11 @@
                     }
                 },
                 plugins: {
-                    legend: { display: false }
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
                 }
             }
         });

@@ -105,6 +105,25 @@
         }
     }
 
+    const baseOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    color: textColor,
+                    usePointStyle: true
+                }
+            },
+            tooltip: {
+                mode: 'index',
+                intersect: false
+            }
+        },
+        layout: { padding: 0 }
+    };
+
     const timeseriesLabels = {{ timeseries_labels|tojson }};
     const timeseriesValues = {{ timeseries_values|tojson }};
     const userCtx = document.getElementById('userRevenueChart');
@@ -125,22 +144,24 @@
                 }]
             },
             options: {
+                ...baseOptions,
+                plugins: {
+                    ...baseOptions.plugins,
+                    legend: { display: false }
+                },
                 scales: {
                     x: {
                         ticks: { color: textColor },
-                        grid: { color: borderTone },
+                        grid: { color: borderTone }
                     },
                     y: {
                         beginAtZero: true,
                         ticks: {
                             color: textColor,
-                            callback: (value) => formatCurrency(value),
+                            callback: (value) => formatCurrency(value)
                         },
-                        grid: { color: borderTone },
+                        grid: { color: borderTone }
                     }
-                },
-                plugins: {
-                    legend: { display: false }
                 }
             }
         });
@@ -172,14 +193,7 @@
                 }],
             },
             options: {
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: textColor,
-                        }
-                    }
-                }
+                ...baseOptions
             }
         });
     }
@@ -198,25 +212,30 @@
                     backgroundColor: 'rgba(128, 130, 166, 0.6)',
                     borderColor: '#8082A6',
                     borderWidth: 1.5,
+                    maxBarThickness: 36
                 }],
             },
             options: {
+                ...baseOptions,
                 indexAxis: 'y',
                 scales: {
                     x: {
                         beginAtZero: true,
                         ticks: {
                             color: textColor,
-                            callback: (value) => formatCurrency(value),
+                            callback: (value) => formatCurrency(value)
                         },
-                        grid: { color: borderTone },
+                        grid: { color: borderTone }
                     },
                     y: {
                         ticks: { color: textColor },
-                        grid: { color: borderTone },
+                        grid: { color: borderTone }
                     }
                 },
-                plugins: { legend: { display: false } }
+                plugins: {
+                    ...baseOptions.plugins,
+                    legend: { display: false }
+                }
             }
         });
     }
@@ -235,24 +254,29 @@
                     backgroundColor: 'rgba(91, 155, 213, 0.6)',
                     borderColor: '#5B9BD5',
                     borderWidth: 1.5,
+                    maxBarThickness: 36
                 }],
             },
             options: {
+                ...baseOptions,
                 scales: {
                     x: {
                         ticks: { color: textColor },
-                        grid: { color: borderTone },
+                        grid: { color: borderTone }
                     },
                     y: {
                         beginAtZero: true,
                         ticks: {
                             color: textColor,
-                            precision: 0,
+                            precision: 0
                         },
-                        grid: { color: borderTone },
+                        grid: { color: borderTone }
                     }
                 },
-                plugins: { legend: { display: false } }
+                plugins: {
+                    ...baseOptions.plugins,
+                    legend: { display: false }
+                }
             }
         });
     }
@@ -277,21 +301,25 @@
                 }],
             },
             options: {
+                ...baseOptions,
                 scales: {
                     x: {
                         ticks: { color: textColor },
-                        grid: { color: borderTone },
+                        grid: { color: borderTone }
                     },
                     y: {
                         beginAtZero: true,
                         ticks: {
                             color: textColor,
-                            callback: (value) => formatCurrency(value),
+                            callback: (value) => formatCurrency(value)
                         },
-                        grid: { color: borderTone },
+                        grid: { color: borderTone }
                     }
                 },
-                plugins: { legend: { display: false } }
+                plugins: {
+                    ...baseOptions.plugins,
+                    legend: { display: false }
+                }
             }
         });
     }
