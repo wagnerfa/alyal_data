@@ -1,0 +1,45 @@
+<div class="dashboard-card filters-card">
+    <form method="get" action="{{ action }}" class="filters-form">
+        <div class="filters-grid">
+            {% set start_value = '' %}
+            {% if start_date %}
+                {% if start_date is string %}
+                    {% set start_value = start_date %}
+                {% else %}
+                    {% set start_value = start_date.isoformat() %}
+                {% endif %}
+            {% endif %}
+            {% set end_value = '' %}
+            {% if end_date %}
+                {% if end_date is string %}
+                    {% set end_value = end_date %}
+                {% else %}
+                    {% set end_value = end_date.isoformat() %}
+                {% endif %}
+            {% endif %}
+            <div class="form-group">
+                <label for="start_date">Data início</label>
+                <input type="date" id="start_date" name="start_date" value="{{ start_value }}">
+            </div>
+            <div class="form-group">
+                <label for="end_date">Data fim</label>
+                <input type="date" id="end_date" name="end_date" value="{{ end_value }}">
+            </div>
+            {% if marketplaces %}
+            <div class="form-group">
+                <label for="marketplace_id">Marketplace</label>
+                <select id="marketplace_id" name="marketplace_id">
+                    <option value="">Todos os marketplaces</option>
+                    {% for marketplace in marketplaces %}
+                        <option value="{{ marketplace.id }}" {% if selected_marketplace == marketplace.id %}selected{% endif %}>{{ marketplace.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="form-group filters-submit">
+                <label>&nbsp;</label>
+                <button type="submit" class="btn btn-primary btn-apply">Aplicar filtros</button>
+            </div>
+        </div>
+    </form>
+</div>

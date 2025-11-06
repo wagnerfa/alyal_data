@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Curva ABC - Alyal{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <h1>Curva ABC por Faturamento</h1>
+    </div>
+
+    {% include '_partials/_filters.html' with action=url_for('dashboard.abc_view') start_date=start_date end_date=end_date marketplaces=marketplaces selected_marketplace=selected_marketplace %}
+
+    <div class="dashboard-grid">
+        {% include '_partials/_chart_block.html' with title='Distribuição de faturamento (Top 10 SKUs)' canvas_id='abcChart' description='Barras exibem faturamento e a linha mostra o acumulado percentual.' %}
+    </div>
+
+    <div class="dashboard-card">
+        <h3>Detalhes por SKU</h3>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>SKU</th>
+                        <th>Nome do Produto</th>
+                        <th>Faturamento</th>
+                        <th>% no total</th>
+                        <th>% acumulado</th>
+                        <th>Classe</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in abc_data %}
+                        <tr>
+                            <td data-label="SKU">{{ item.sku }}</td>
+                            <td data-label="Nome">{{ item.nome_produto }}</td>
+                            <td data-label="Faturamento">R$ {{ '%.2f'|format(item.faturamento) }}</td>
+                            <td data-label="% no total">{{ '%.1f'|format(item.percentual) }}%</td>
+                            <td data-label="% acumulado">{{ '%.1f'|format(item.percentual_acumulado) }}%</td>
+                            <td data-label="Classe"><span class="badge badge-class-{{ item.classe|lower }}">{{ item.classe }}</span></td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6">Nenhum dado disponível para o período selecionado.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const abcCtx = document.getElementById('abcChart');
+    if (abcCtx) {
+        new Chart(abcCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ chart_labels|tojson }},
+                datasets: [
+                    {
+                        label: 'Faturamento',
+                        data: {{ chart_revenue|tojson }},
+                        backgroundColor: 'rgba(175, 169, 217, 0.55)',
+                        borderColor: '#AFA9D9',
+                        borderWidth: 2,
+                        yAxisID: 'y',
+                    },
+                    {
+                        type: 'line',
+                        label: '% acumulado',
+                        data: {{ chart_cumulative|tojson }},
+                        borderColor: '#8082A6',
+                        backgroundColor: 'rgba(128, 130, 166, 0.2)',
+                        borderWidth: 3,
+                        yAxisID: 'y1',
+                        tension: 0.2,
+                        pointRadius: 4,
+                    }
+                ]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        position: 'left',
+                        ticks: {
+                            callback: (value) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                        }
+                    },
+                    y1: {
+                        beginAtZero: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        ticks: {
+                            callback: (value) => `${value.toFixed(0)}%`
+                        },
+                        suggestedMax: 100
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}
