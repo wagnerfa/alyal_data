@@ -41,13 +41,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Validação de formulário de login
-    const loginForm = document.querySelector('form');
+    const loginForm = document.querySelector('form[action*="auth/login"]');
     if (loginForm) {
         loginForm.addEventListener('submit', function(e) {
             const username = document.querySelector('input[name="username"]');
             const password = document.querySelector('input[name="password"]');
-            
-            if (!username.value.trim() || !password.value.trim()) {
+
+            if (!username || !password || !username.value.trim() || !password.value.trim()) {
                 e.preventDefault();
                 showAlert('Por favor, preencha todos os campos', 'error');
             }

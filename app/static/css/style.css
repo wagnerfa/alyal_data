@@ -39,11 +39,11 @@ body {
     background: var(--body-bg);
     min-height: 100vh;
     display: flex;
-    justify-content: center;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
     color: var(--text-primary);
     transition: background 0.3s ease, color 0.3s ease;
-    padding: 40px 20px;
+    padding: 80px 20px 40px;
 }
 
 body[data-theme="dark"] {
@@ -174,7 +174,27 @@ body[data-theme="dark"] {
     transition: all 0.3s ease;
 }
 
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
 .form-group input:focus {
+    outline: none;
+    background: var(--input-bg);
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 3px var(--input-focus-shadow);
+}
+
+.form-group select:focus,
+.form-group textarea:focus {
     outline: none;
     background: var(--input-bg);
     border-color: var(--color-secondary);
@@ -437,10 +457,276 @@ tbody tr:hover {
     transform: translateY(-2px);
 }
 
+/* Layout principal */
+.main-content {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.app-layout .main-content {
+    max-width: 1280px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.auth-layout {
+    align-items: center;
+    padding: 40px 20px;
+}
+
+.auth-layout .main-content {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.flash-container {
+    width: 100%;
+    max-width: 600px;
+}
+
+/* Navegação */
+.main-nav {
+    width: 100%;
+    margin: 0 auto 20px;
+    position: sticky;
+    top: 20px;
+    z-index: 900;
+}
+
+.nav-wrapper {
+    background: var(--card-bg);
+    backdrop-filter: var(--surface-backdrop);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--surface-shadow);
+    border-radius: 14px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.nav-title {
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--color-accent);
+}
+
+.nav-links {
+    list-style: none;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.nav-links a {
+    text-decoration: none;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 8px 14px;
+    border-radius: 10px;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+.nav-links a:hover,
+.nav-links a:focus {
+    background: rgba(175, 169, 217, 0.18);
+    color: var(--color-accent);
+}
+
+.nav-logout {
+    background: var(--logout-bg);
+    border: 1px solid var(--logout-border);
+    color: var(--logout-text);
+}
+
+.nav-logout:hover,
+.nav-logout:focus {
+    background: var(--color-warning);
+    color: var(--color-dark);
+}
+
+/* Filtros e KPIs */
+.filters-card {
+    margin-bottom: 10px;
+}
+
+.filters-form {
+    width: 100%;
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    align-items: end;
+}
+
+.filters-submit {
+    display: flex;
+    align-items: flex-end;
+}
+
+.btn-apply {
+    width: auto;
+    padding: 12px 24px;
+}
+
+.kpi-grid {
+    margin-bottom: 10px;
+}
+
+.kpi-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.kpi-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.kpi-caption {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+/* Charts e insights */
+.chart-header {
+    margin-bottom: 15px;
+}
+
+.chart-caption {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.insights-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.insights-list {
+    list-style: disc;
+    padding-left: 18px;
+    color: var(--text-primary);
+}
+
+.insights-list li {
+    margin-bottom: 8px;
+}
+
+.insights-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.card-description {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+/* Listas auxiliares */
+.abc-preview {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.abc-preview li {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: var(--text-muted);
+}
+
+.abc-preview strong {
+    color: var(--text-primary);
+}
+
+.badge-class-a {
+    background: linear-gradient(135deg, #7ed321, #5ab027);
+}
+
+.badge-class-b {
+    background: linear-gradient(135deg, #f5a623, #f2994a);
+}
+
+.badge-class-c {
+    background: linear-gradient(135deg, #d8d8d8, #bdbdbd);
+    color: #282E40;
+}
+
+.note-card textarea {
+    min-height: 140px;
+    resize: vertical;
+}
+
+.manager-note-period {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+.import-notes {
+    list-style: disc;
+    padding-left: 20px;
+    color: var(--text-muted);
+    margin: 12px 0;
+}
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.pagination a,
+.pagination span {
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--card-border);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+.pagination a:hover {
+    background: rgba(175, 169, 217, 0.2);
+    color: var(--color-accent);
+}
+
+.pagination .disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
 /* Responsividade */
 @media (max-width: 1024px) {
     body {
-        padding: 40px 16px;
+        padding: 80px 16px 40px;
     }
 }
 
@@ -453,6 +739,15 @@ tbody tr:hover {
     .theme-toggle {
         top: 16px;
         right: 16px;
+    }
+
+    .nav-wrapper {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .nav-links {
+        width: 100%;
     }
 
     .dashboard-header {
@@ -480,7 +775,7 @@ tbody tr:hover {
 
 @media (max-width: 600px) {
     body {
-        padding: 70px 12px 40px;
+        padding: 80px 12px 40px;
     }
 
     .login-card {
