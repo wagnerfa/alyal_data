@@ -64,7 +64,10 @@
                 {% if selected_marketplace %}
                     <input type="hidden" name="marketplace_id" value="{{ selected_marketplace }}">
                 {% endif %}
-                <textarea name="manager_note" rows="6" placeholder="Compartilhe orientações para o período">{{ manager_note.conteudo if manager_note else '' }}</textarea>
+                <div class="form-group">
+                    <label for="managerNote">Comentário</label>
+                    <textarea id="managerNote" name="manager_note" rows="6" placeholder="Compartilhe orientações para o período">{{ manager_note.conteudo if manager_note else '' }}</textarea>
+                </div>
                 <button type="submit" class="btn btn-primary">Salvar comentário</button>
             </form>
         </div>

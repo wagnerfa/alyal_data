@@ -19,6 +19,7 @@
                 <li><a href="{{ url_for('dashboard.abc_view') }}">Produtos (ABC)</a></li>
                 <li><a href="{{ url_for('dashboard.status_view') }}">Status</a></li>
                 {% if current_user.is_manager() %}
+                    <li><a href="{{ url_for('data.sales_list') }}">Vendas</a></li>
                     <li><a href="{{ url_for('data.upload_form') }}">Importar Dados</a></li>
                 {% endif %}
                 <li><a href="{{ url_for('auth.logout') }}" class="nav-logout">Sair</a></li>
