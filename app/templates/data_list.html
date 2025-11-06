@@ -34,7 +34,7 @@
                             <td data-label="SKU">{{ sale.sku }}</td>
                             <td data-label="Produto">{{ sale.nome_produto }}</td>
                             <td data-label="Status">{{ sale.status_pedido.replace('_', ' ')|title }}</td>
-                            <td data-label="Valor">R$ {{ '%.2f'|format(sale.valor_total_venda) }}</td>
+                            <td data-label="Valor">{{ sale.valor_total_venda|currency_br }}</td>
                         </tr>
                     {% else %}
                         <tr>

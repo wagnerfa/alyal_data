@@ -72,8 +72,8 @@ body[data-theme="dark"] {
 /* Botão de alternância de tema */
 .theme-toggle {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: clamp(12px, 2.5vh, 24px);
+    right: clamp(12px, 2.5vh, 24px);
     width: 48px;
     height: 48px;
     border-radius: 50%;
@@ -737,7 +737,8 @@ tbody tr:hover {
     }
 
     .theme-toggle {
-        top: 16px;
+        position: fixed;
+        top: calc(env(safe-area-inset-top, 0px) + 12px);
         right: 16px;
     }
 

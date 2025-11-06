@@ -13,6 +13,7 @@ from app.services.metrics import (
     sales_timeseries,
     status_breakdown,
 )
+from app.utils.formatting import format_currency_br, format_decimal_br
 
 
 def _redirect_to_role_dashboard():
@@ -67,9 +68,13 @@ def _variation_text(current_value, previous_value):
     if previous_value:
         variation = ((current_value - previous_value) / previous_value) * 100
         if variation > 0:
-            return f'aumento de {variation:.1f}% em relação ao período anterior'
+            return (
+                f"aumento de {format_decimal_br(variation, 1)}% em relação ao período anterior"
+            )
         if variation < 0:
-            return f'queda de {abs(variation):.1f}% em relação ao período anterior'
+            return (
+                f"queda de {format_decimal_br(abs(variation), 1)}% em relação ao período anterior"
+            )
         return 'estabilidade em relação ao período anterior'
     if current_value > 0:
         return 'crescimento sobre um período sem registros'
@@ -79,19 +84,25 @@ def _variation_text(current_value, previous_value):
 def _generate_insights(kpis, previous_kpis, abc_data):
     insights = []
     insights.append(
-        f"Faturamento do período: R$ {kpis['faturamento']:.2f} ({_variation_text(kpis['faturamento'], previous_kpis['faturamento'])})."
+        f"Faturamento do período: {format_currency_br(kpis['faturamento'])} ("
+        f"{_variation_text(kpis['faturamento'], previous_kpis['faturamento'])})."
     )
     insights.append(
-        f"Total de pedidos válidos: {kpis['pedidos_totais']:.0f} ({_variation_text(kpis['pedidos_totais'], previous_kpis['pedidos_totais'])})."
+        "Total de pedidos válidos: "
+        f"{format_decimal_br(kpis['pedidos_totais'], 0)} ("
+        f"{_variation_text(kpis['pedidos_totais'], previous_kpis['pedidos_totais'])})."
     )
     if kpis['taxa_cancelamento'] > 0:
-        insights.append(f"Taxa de cancelamento em {kpis['taxa_cancelamento']:.1f}% no período analisado.")
+        insights.append(
+            f"Taxa de cancelamento em {format_decimal_br(kpis['taxa_cancelamento'], 1)}% no período analisado."
+        )
     else:
         insights.append('Nenhum pedido cancelado no período selecionado.')
     if abc_data:
         top = abc_data[0]
         insights.append(
-            f"SKU de maior faturamento: {top['sku']} com {top['percentual']:.1f}% do total (classe {top['classe']})."
+            "SKU de maior faturamento: "
+            f"{top['sku']} com {format_decimal_br(top['percentual'], 1)}% do total (classe {top['classe']})."
         )
     return insights
 

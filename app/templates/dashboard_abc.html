@@ -37,9 +37,9 @@
                         <tr>
                             <td data-label="SKU">{{ item.sku }}</td>
                             <td data-label="Nome">{{ item.nome_produto }}</td>
-                            <td data-label="Faturamento">R$ {{ '%.2f'|format(item.faturamento) }}</td>
-                            <td data-label="% no total">{{ '%.1f'|format(item.percentual) }}%</td>
-                            <td data-label="% acumulado">{{ '%.1f'|format(item.percentual_acumulado) }}%</td>
+                            <td data-label="Faturamento">{{ item.faturamento|currency_br }}</td>
+                            <td data-label="% no total">{{ item.percentual|decimal_br(1) }}%</td>
+                            <td data-label="% acumulado">{{ item.percentual_acumulado|decimal_br(1) }}%</td>
                             <td data-label="Classe"><span class="badge badge-class-{{ item.classe|lower }}">{{ item.classe }}</span></td>
                         </tr>
                     {% else %}

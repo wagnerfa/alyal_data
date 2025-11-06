@@ -3,6 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from config import Config
 
+from app.utils.formatting import format_currency_br, format_decimal_br
+
 db = SQLAlchemy()
 login_manager = LoginManager()
 
@@ -23,6 +25,9 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(data_bp)
+
+    app.jinja_env.filters['currency_br'] = format_currency_br
+    app.jinja_env.filters['decimal_br'] = format_decimal_br
 
     # Criar tabelas do banco de dados
     with app.app_context():

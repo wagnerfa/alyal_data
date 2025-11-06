@@ -49,7 +49,7 @@
                     <li>
                         <strong>{{ item.sku }}</strong>
                         <span>{{ item.nome_produto }}</span>
-                        <span>R$ {{ '%.2f'|format(item.faturamento) }} • {{ '%.1f'|format(item.percentual) }}% • Classe {{ item.classe }}</span>
+                        <span>{{ item.faturamento|currency_br }} • {{ item.percentual|decimal_br(1) }}% • Classe {{ item.classe }}</span>
                     </li>
                 {% else %}
                     <li>Nenhuma venda encontrada para o período.</li>
