@@ -1,8 +1,10 @@
 import csv
 import io
+import re
 import unicodedata
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal, InvalidOperation
+from typing import Dict, Iterable, Optional
 
 from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -13,152 +15,299 @@ from app.data import data_bp
 from app.models import Marketplace, Sale
 
 
-REQUIRED_COLUMNS = {'nome_produto', 'sku', 'status_pedido', 'data_venda', 'valor_total_venda'}
 MAX_UPLOAD_SIZE = 2 * 1024 * 1024  # 2MB
+REQUIRED_COLUMNS = {"nome_produto", "sku", "status_pedido", "data_venda", "valor_total_venda"}
+
+HEADER_SYNONYMS: Dict[str, Iterable[str]] = {
+    "nome_produto": {
+        "nome_produto",
+        "nome",
+        "produto",
+        "titulo",
+        "titulo_produto",
+        "item",
+        "descricao",
+        "descricao_produto",
+    },
+    "sku": {
+        "sku",
+        "codigo",
+        "codigo_sku",
+        "referencia",
+        "id_sku",
+    },
+    "status_pedido": {
+        "status_pedido",
+        "status",
+        "situacao",
+        "status_da_venda",
+        "situacao_pedido",
+    },
+    "data_venda": {
+        "data_venda",
+        "data",
+        "data_pedido",
+        "data_da_venda",
+        "pedido_data",
+    },
+    "valor_total_venda": {
+        "valor_total_venda",
+        "valor",
+        "total",
+        "valor_total",
+        "preco_total",
+        "preco",
+        "montante",
+    },
+}
+
+STATUS_ALIASES = {
+    "concluido": "entregue",
+    "concluida": "entregue",
+    "finalizado": "entregue",
+    "delivered": "entregue",
+    "aprovado": "pago",
+    "aprovada": "pago",
+    "paid": "pago",
+    "shipped": "enviado",
+    "postado": "enviado",
+    "despachado": "enviado",
+    "cancelada": "cancelado",
+    "canceled": "cancelado",
+}
+
+VALID_STATUSES = {"pago", "enviado", "entregue", "cancelado"}
 
 
-def _normalize_status(value: str) -> str:
-    normalized = unicodedata.normalize('NFKD', value or '')
-    normalized = ''.join(ch for ch in normalized if not unicodedata.combining(ch))
-    return normalized.strip().lower().replace(' ', '_').replace('-', '_')
-
-
-def _parse_date(value: str):
+def normalize_header(value: Optional[str]) -> str:
     if not value:
-        raise ValueError('data_venda vazia')
+        return ""
+    normalized = unicodedata.normalize("NFKD", value)
+    normalized = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    normalized = normalized.lower().strip()
+    normalized = re.sub(r"[^a-z0-9]+", "_", normalized)
+    normalized = re.sub(r"_+", "_", normalized)
+    return normalized.strip("_")
+
+
+def map_header(header: str) -> Optional[str]:
+    for internal, synonyms in HEADER_SYNONYMS.items():
+        if header == internal or header in synonyms:
+            return internal
+    return None
+
+
+def detect_delimiter(sample: str) -> str:
+    if not sample:
+        return ";"
+    try:
+        dialect = csv.Sniffer().sniff(sample, delimiters=";,")
+        return dialect.delimiter
+    except csv.Error:
+        if ";" in sample:
+            return ";"
+        return ","
+
+
+def parse_date(value: str) -> date:
+    if not value:
+        raise ValueError("data_venda vazia")
     value = value.strip()
-    formats = (
-        '%Y-%m-%d',
-        '%d/%m/%Y',
-        '%d-%m-%Y',
-        '%Y/%m/%d',
-        '%Y-%m-%d %H:%M:%S',
-        '%d/%m/%Y %H:%M:%S',
-    )
-    for fmt in formats:
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"):
         try:
             return datetime.strptime(value, fmt).date()
         except ValueError:
             continue
-    raise ValueError(f'Formato de data inválido: {value}')
+    raise ValueError(f"Formato de data inválido: {value}")
 
 
-def _parse_decimal(value: str) -> Decimal:
+def parse_decimal_ptbr_en(value: str) -> Decimal:
     if value is None:
-        raise InvalidOperation('valor_total_venda ausente')
-    cleaned = value.replace('R$', '').replace(' ', '').replace('.', '').replace(',', '.').strip()
+        raise InvalidOperation("valor_total_venda ausente")
+    cleaned = (
+        value.strip()
+        .replace("R$", "")
+        .replace(" ", "")
+        .replace("\u00a0", "")
+    )
     if not cleaned:
-        raise InvalidOperation('valor_total_venda vazio')
+        raise InvalidOperation("valor_total_venda vazio")
+    comma_pos = cleaned.rfind(",")
+    dot_pos = cleaned.rfind(".")
+    if comma_pos != -1 or dot_pos != -1:
+        decimal_sep = "," if comma_pos > dot_pos else "."
+        if decimal_sep == ",":
+            cleaned = cleaned.replace(".", "")
+            cleaned = cleaned.replace(",", ".")
+        else:
+            cleaned = cleaned.replace(",", "")
+    else:
+        cleaned = cleaned.replace(",", "").replace(".", "")
     return Decimal(cleaned)
+
+
+def normalize_status(value: str) -> str:
+    if not value:
+        return ""
+    normalized = unicodedata.normalize("NFKD", value)
+    normalized = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    normalized = normalized.lower().strip()
+    normalized = normalized.replace(" ", "_").replace("-", "_")
+    normalized = re.sub(r"_+", "_", normalized)
+    normalized = normalized.strip("_")
+    if normalized in STATUS_ALIASES:
+        return STATUS_ALIASES[normalized]
+    if normalized in VALID_STATUSES:
+        return normalized
+    return normalized
 
 
 def _ensure_manager_access():
     if not current_user.is_manager():
-        flash('Acesso restrito aos gestores.', 'error')
-        return redirect(url_for('dashboard.user_dashboard'))
+        flash("Acesso restrito aos gestores.", "error")
+        return redirect(url_for("dashboard.user_dashboard"))
     return None
 
 
-@data_bp.route('/upload', methods=['GET', 'POST'])
+@data_bp.route("/upload", methods=["GET"])
 @login_required
-def upload():
+def upload_form():
     redirect_response = _ensure_manager_access()
     if redirect_response:
         return redirect_response
 
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
+    return render_template("data_upload.html", marketplaces=marketplaces)
 
-    if request.method == 'POST':
-        marketplace_id = request.form.get('marketplace_id')
-        file = request.files.get('file')
 
-        if not marketplace_id or not marketplace_id.isdigit():
-            flash('Selecione um marketplace válido.', 'error')
-            return render_template('data_upload.html', marketplaces=marketplaces)
+@data_bp.route("/upload", methods=["POST"])
+@login_required
+def upload_submit():
+    redirect_response = _ensure_manager_access()
+    if redirect_response:
+        return redirect_response
 
-        marketplace = Marketplace.query.get(int(marketplace_id))
-        if not marketplace:
-            flash('Marketplace selecionado não encontrado.', 'error')
-            return render_template('data_upload.html', marketplaces=marketplaces)
+    marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
+    marketplace_id = request.form.get("marketplace_id")
+    file = request.files.get("file")
 
-        if not file or file.filename == '':
-            flash('Envie um arquivo CSV válido.', 'error')
-            return render_template('data_upload.html', marketplaces=marketplaces)
+    try:
+        marketplace_id_int = int(marketplace_id)
+    except (TypeError, ValueError):
+        flash("Selecione um marketplace válido.", "error")
+        return render_template("data_upload.html", marketplaces=marketplaces)
 
-        if not file.filename.lower().endswith('.csv'):
-            flash('O arquivo deve estar no formato .csv.', 'error')
-            return render_template('data_upload.html', marketplaces=marketplaces)
+    marketplace = db.session.get(Marketplace, marketplace_id_int)
+    if not marketplace:
+        flash("Marketplace selecionado não encontrado.", "error")
+        return render_template(
+            "data_upload.html",
+            marketplaces=marketplaces,
+            selected_marketplace=marketplace_id_int,
+        )
 
-        file.stream.seek(0, io.SEEK_END)
-        size = file.stream.tell()
-        file.stream.seek(0)
-        if size > MAX_UPLOAD_SIZE:
-            flash('O arquivo excede o tamanho máximo permitido de 2MB.', 'error')
-            return render_template('data_upload.html', marketplaces=marketplaces)
+    if not file or file.filename == "":
+        flash("Envie um arquivo CSV válido.", "error")
+        return render_template("data_upload.html", marketplaces=marketplaces, selected_marketplace=marketplace.id)
 
-        file.stream.seek(0)
-        raw_bytes = file.stream.read()
+    if not file.filename.lower().endswith(".csv"):
+        flash("O arquivo deve estar no formato .csv.", "error")
+        return render_template("data_upload.html", marketplaces=marketplaces, selected_marketplace=marketplace.id)
+
+    file.stream.seek(0, io.SEEK_END)
+    size = file.stream.tell()
+    file.stream.seek(0)
+    if size > MAX_UPLOAD_SIZE:
+        flash("O arquivo excede o tamanho máximo permitido de 2MB.", "error")
+        return render_template("data_upload.html", marketplaces=marketplaces, selected_marketplace=marketplace.id)
+
+    raw_bytes = file.read()
+    if not raw_bytes:
+        flash("O arquivo enviado está vazio.", "error")
+        return render_template("data_upload.html", marketplaces=marketplaces, selected_marketplace=marketplace.id)
+
+    buffer = io.BytesIO(raw_bytes)
+    text_stream = io.TextIOWrapper(buffer, encoding="utf-8-sig", newline="")
+    sample = text_stream.read(2048)
+    delimiter = detect_delimiter(sample)
+    text_stream.seek(0)
+    reader = csv.DictReader(text_stream, delimiter=delimiter)
+
+    if not reader.fieldnames:
+        flash("Não foi possível identificar o cabeçalho do CSV.", "error")
+        return render_template("data_upload.html", marketplaces=marketplaces, selected_marketplace=marketplace.id)
+
+    header_map: Dict[str, str] = {}
+    for original_header in reader.fieldnames:
+        normalized = normalize_header(original_header)
+        internal_name = map_header(normalized)
+        if internal_name and internal_name not in header_map:
+            header_map[internal_name] = original_header
+
+    missing_columns = sorted(REQUIRED_COLUMNS - set(header_map.keys()))
+    if missing_columns:
+        missing_str = ", ".join(missing_columns)
+        flash(f"CSV inválido. Colunas ausentes: {missing_str}.", "error")
+        return render_template("data_upload.html", marketplaces=marketplaces, selected_marketplace=marketplace.id)
+
+    sales_to_insert = []
+    errors = []
+    total_rows = 0
+
+    for line_number, row in enumerate(reader, start=2):
+        total_rows += 1
+        line_data = {key: (row.get(source) or "").strip() for key, source in header_map.items()}
+
         try:
-            decoded = raw_bytes.decode('utf-8-sig')
-        except UnicodeDecodeError:
-            decoded = raw_bytes.decode('latin1')
+            nome_produto = line_data["nome_produto"].strip()
+            sku = line_data["sku"].strip()
+            if not nome_produto:
+                raise ValueError("nome_produto vazio")
+            if not sku:
+                raise ValueError("sku vazio")
 
-        reader = csv.DictReader(io.StringIO(decoded))
-        if not REQUIRED_COLUMNS.issubset({(col or '').strip().lower() for col in reader.fieldnames or []}):
-            flash('CSV inválido. Certifique-se de incluir as colunas: nome_produto, sku, status_pedido, data_venda, valor_total_venda.', 'error')
-            return render_template('data_upload.html', marketplaces=marketplaces)
+            status = normalize_status(line_data["status_pedido"])
+            if not status:
+                raise ValueError("status_pedido inválido")
 
-        sales_to_insert = []
-        errors = []
+            data_venda = parse_date(line_data["data_venda"])
+            valor_total = parse_decimal_ptbr_en(line_data["valor_total_venda"])
 
-        for line_number, row in enumerate(reader, start=2):
-            try:
-                normalized_row = {key.strip().lower(): (value or '').strip() for key, value in row.items()}
-                if not REQUIRED_COLUMNS.issubset(set(normalized_row.keys())):
-                    raise ValueError('Colunas obrigatórias ausentes na linha')
+            sale = Sale(
+                marketplace_id=marketplace.id,
+                nome_produto=nome_produto,
+                sku=sku,
+                status_pedido=status,
+                data_venda=data_venda,
+                valor_total_venda=valor_total,
+            )
+            sales_to_insert.append(sale)
+        except (ValueError, InvalidOperation) as exc:
+            errors.append(f"Linha {line_number}: {exc}")
 
-                status = _normalize_status(normalized_row['status_pedido'])
-                data_venda = _parse_date(normalized_row['data_venda'])
-                valor = _parse_decimal(normalized_row['valor_total_venda'])
-                nome_produto = normalized_row['nome_produto']
-                sku = normalized_row['sku']
+    imported_count = len(sales_to_insert)
+    ignored_count = total_rows - imported_count
 
-                if not nome_produto or not sku:
-                    raise ValueError('Campos nome_produto e sku são obrigatórios')
+    if sales_to_insert:
+        db.session.bulk_save_objects(sales_to_insert)
+        db.session.commit()
 
-                sales_to_insert.append(
-                    Sale(
-                        marketplace_id=marketplace.id,
-                        nome_produto=nome_produto,
-                        sku=sku,
-                        status_pedido=status,
-                        data_venda=data_venda,
-                        valor_total_venda=valor,
-                    )
-                )
-            except (ValueError, InvalidOperation) as exc:
-                errors.append(f'Linha {line_number}: {exc}')
+    summary_message = (
+        f"Importação concluída: {total_rows} linhas lidas, "
+        f"{imported_count} importadas, {ignored_count} ignoradas."
+    )
+    flash(summary_message, "success" if imported_count and not errors else "warning")
 
-        if errors:
-            for error in errors[:5]:
-                flash(error, 'error')
-            if len(errors) > 5:
-                flash(f'{len(errors) - 5} erros adicionais foram omitidos.', 'error')
-            return render_template('data_upload.html', marketplaces=marketplaces)
+    if errors:
+        for error in errors[:5]:
+            flash(error, "error")
+        if len(errors) > 5:
+            flash(f"{len(errors) - 5} erros adicionais foram omitidos.", "error")
 
-        if sales_to_insert:
-            db.session.bulk_save_objects(sales_to_insert)
-            db.session.commit()
-            flash(f'{len(sales_to_insert)} vendas importadas para {marketplace.nome}.', 'success')
-        else:
-            flash('Nenhuma venda válida encontrada no arquivo.', 'warning')
-
-        return redirect(url_for('data.upload'))
-
-    return render_template('data_upload.html', marketplaces=marketplaces)
+    return redirect(url_for("data.upload_form"))
 
 
-@data_bp.route('/list')
+@data_bp.route("/list")
 @login_required
 def sales_list():
     redirect_response = _ensure_manager_access()
@@ -166,21 +315,21 @@ def sales_list():
         return redirect_response
 
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
-    page = request.args.get('page', default=1, type=int)
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-    marketplace_id = request.args.get('marketplace_id', type=int)
+    page = request.args.get("page", default=1, type=int)
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    marketplace_id = request.args.get("marketplace_id", type=int)
 
     query = Sale.query.options(joinedload(Sale.marketplace)).order_by(Sale.data_venda.desc(), Sale.id.desc())
 
     try:
         if start_date:
-            query = query.filter(Sale.data_venda >= datetime.strptime(start_date, '%Y-%m-%d').date())
+            query = query.filter(Sale.data_venda >= datetime.strptime(start_date, "%Y-%m-%d").date())
         if end_date:
-            query = query.filter(Sale.data_venda <= datetime.strptime(end_date, '%Y-%m-%d').date())
+            query = query.filter(Sale.data_venda <= datetime.strptime(end_date, "%Y-%m-%d").date())
     except ValueError:
-        flash('Datas inválidas informadas.', 'error')
-        return redirect(url_for('data.sales_list'))
+        flash("Datas inválidas informadas.", "error")
+        return redirect(url_for("data.sales_list"))
 
     if marketplace_id:
         query = query.filter(Sale.marketplace_id == marketplace_id)
@@ -188,7 +337,7 @@ def sales_list():
     pagination = query.paginate(page=page, per_page=25, error_out=False)
 
     return render_template(
-        'data_list.html',
+        "data_list.html",
         marketplaces=marketplaces,
         sales=pagination.items,
         pagination=pagination,

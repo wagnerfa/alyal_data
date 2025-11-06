@@ -10,15 +10,15 @@
 
     <div class="dashboard-card">
         <h3>Formato esperado</h3>
-        <p class="card-description">Utilize arquivos CSV com cabeçalho contendo as colunas abaixo:</p>
+        <p class="card-description">Utilize arquivos CSV com cabeçalho contendo as colunas abaixo (sinônimos comuns também são aceitos, como "produto" para <code>nome_produto</code> ou "valor" para <code>valor_total_venda</code>).</p>
         <ul class="import-notes">
             <li><code>nome_produto</code></li>
             <li><code>sku</code></li>
-            <li><code>status_pedido</code> (será normalizado para minúsculas e sem acentos)</li>
-            <li><code>data_venda</code> (formatos aceitos: YYYY-MM-DD ou DD/MM/YYYY)</li>
-            <li><code>valor_total_venda</code> (use ponto ou vírgula)</li>
+            <li><code>status_pedido</code> (normalizado para minúsculas e sem acentos)</li>
+            <li><code>data_venda</code> (formatos aceitos: YYYY-MM-DD, DD/MM/YYYY ou DD-MM-YYYY)</li>
+            <li><code>valor_total_venda</code> (aceita 1.234,56 ou 1234.56)</li>
         </ul>
-        <p class="card-description">Selecione o marketplace durante o envio. Tamanho máximo permitido: 2MB.</p>
+        <p class="card-description">O marketplace é selecionado no envio. Delimitadores <code>;</code> e <code>,</code> são detectados automaticamente. Tamanho máximo permitido: 2MB.</p>
     </div>
 
     <div class="dashboard-card">
@@ -28,7 +28,7 @@
                 <select id="marketplace_id" name="marketplace_id" required>
                     <option value="">Selecione</option>
                     {% for marketplace in marketplaces %}
-                        <option value="{{ marketplace.id }}">{{ marketplace.nome }}</option>
+                        <option value="{{ marketplace.id }}" {% if selected_marketplace == marketplace.id %}selected{% endif %}>{{ marketplace.nome }}</option>
                     {% endfor %}
                 </select>
             </div>
