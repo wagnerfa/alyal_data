@@ -1,0 +1,22 @@
+<div class="dashboard-grid kpi-grid">
+    <div class="dashboard-card kpi-card">
+        <h3>Faturamento</h3>
+        <p class="kpi-value">R$ {{ '%.2f'|format(kpis.faturamento) }}</p>
+        <p class="kpi-caption">Somatório de pedidos pagos, enviados e entregues.</p>
+    </div>
+    <div class="dashboard-card kpi-card">
+        <h3>Pedidos</h3>
+        <p class="kpi-value">{{ '%.0f'|format(kpis.pedidos_totais) }}</p>
+        <p class="kpi-caption">Quantidade total de pedidos válidos.</p>
+    </div>
+    <div class="dashboard-card kpi-card">
+        <h3>Ticket Médio</h3>
+        <p class="kpi-value">R$ {{ '%.2f'|format(kpis.ticket_medio) }}</p>
+        <p class="kpi-caption">Faturamento dividido pelo número de pedidos.</p>
+    </div>
+    <div class="dashboard-card kpi-card">
+        <h3>Cancelamento</h3>
+        <p class="kpi-value">{{ '%.1f'|format(kpis.taxa_cancelamento) }}%</p>
+        <p class="kpi-caption">Percentual de pedidos cancelados no período.</p>
+    </div>
+</div>

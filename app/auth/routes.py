@@ -4,6 +4,7 @@ from app.auth import auth_bp
 from app.models import User
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
+@auth_bp.route('/auth/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username')
@@ -25,6 +26,7 @@ def login():
     return render_template('login.html')
 
 @auth_bp.route('/logout')
+@auth_bp.route('/auth/logout')
 @login_required
 def logout():
     logout_user()
