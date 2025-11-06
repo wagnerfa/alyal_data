@@ -13,10 +13,13 @@
 
     {% include '_partials/_kpi_cards.html' %}
 
-    {% set title = 'Faturamento diário' %}
-    {% set canvas_id = 'userRevenueChart' %}
-    {% set description = 'Evolução do faturamento considerando pedidos pagos, enviados e entregues.' %}
-    {% include '_partials/_chart_block.html' %}
+    <div class="dashboard-grid">
+        {% set title = 'Faturamento diário' %}
+        {% set canvas_id = 'userRevenueChart' %}
+        {% set description = 'Evolução do faturamento considerando pedidos pagos, enviados e entregues.' %}
+        {% set height = 220 %}
+        {% include '_partials/_chart_block.html' %}
+    </div>
 
     <div class="dashboard-grid">
         <div class="dashboard-card">
@@ -42,9 +45,18 @@
             </ul>
         </div>
 
+        {% set title = 'Distribuição por status' %}
+        {% set canvas_id = 'statusDistributionChart' %}
+        {% set description = 'Participação de cada status no período selecionado.' %}
+        {% set height = 240 %}
+        {% include '_partials/_chart_block.html' %}
+    </div>
+
+    <div class="dashboard-grid">
         {% set title = 'Top 5 produtos por faturamento' %}
         {% set canvas_id = 'topProductsChart' %}
         {% set description = 'Produtos com maior faturamento no período.' %}
+        {% set height = 260 %}
         {% include '_partials/_chart_block.html' %}
     </div>
 
@@ -52,11 +64,15 @@
         {% set title = 'Vendas por mês' %}
         {% set canvas_id = 'monthlySalesChart' %}
         {% set description = 'Total de pedidos válidos por mês.' %}
+        {% set height = 260 %}
         {% include '_partials/_chart_block.html' %}
+    </div>
 
+    <div class="dashboard-grid">
         {% set title = 'Faturamento por mês' %}
         {% set canvas_id = 'monthlyRevenueChart' %}
         {% set description = 'Soma do faturamento mensal considerando pedidos pagos, enviados e entregues.' %}
+        {% set height = 260 %}
         {% include '_partials/_chart_block.html' %}
     </div>
 
@@ -75,6 +91,20 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    const themeStyles = getComputedStyle(document.documentElement);
+    const textColor = (themeStyles.getPropertyValue('--text-primary') || '#2c3e50').trim() || '#2c3e50';
+    const surfaceColor = (themeStyles.getPropertyValue('--card-bg') || '#ffffff').trim() || '#ffffff';
+    const borderTone = (themeStyles.getPropertyValue('--card-border') || 'rgba(0, 0, 0, 0.1)').trim() || 'rgba(0, 0, 0, 0.1)';
+    const baseFont = (themeStyles.getPropertyValue('--font-family-base') || '').trim();
+    const formatCurrency = (value) => `R$ ${Number(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+
+    if (window.Chart) {
+        Chart.defaults.color = textColor;
+        if (baseFont) {
+            Chart.defaults.font.family = baseFont;
+        }
+    }
+
     const timeseriesLabels = {{ timeseries_labels|tojson }};
     const timeseriesValues = {{ timeseries_values|tojson }};
     const userCtx = document.getElementById('userRevenueChart');
@@ -96,15 +126,59 @@
             },
             options: {
                 scales: {
+                    x: {
+                        ticks: { color: textColor },
+                        grid: { color: borderTone },
+                    },
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            callback: (value) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-                        }
+                            color: textColor,
+                            callback: (value) => formatCurrency(value),
+                        },
+                        grid: { color: borderTone },
                     }
                 },
                 plugins: {
                     legend: { display: false }
+                }
+            }
+        });
+    }
+
+    const statusLabels = {{ status_labels|tojson }};
+    const statusValues = {{ status_values|tojson }};
+    const statusCtx = document.getElementById('statusDistributionChart');
+    if (statusCtx && Array.isArray(statusValues) && statusValues.length) {
+        const palette = [
+            '#8082A6',
+            '#34BFA3',
+            '#5B9BD5',
+            '#F6C23E',
+            '#F9A8D4',
+            '#ED7D31',
+            '#36A2EB'
+        ];
+        const colors = statusValues.map((_, index) => palette[index % palette.length]);
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusValues,
+                    backgroundColor: colors,
+                    borderColor: surfaceColor || '#ffffff',
+                    borderWidth: 1,
+                }],
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: textColor,
+                        }
+                    }
                 }
             }
         });
@@ -132,8 +206,14 @@
                     x: {
                         beginAtZero: true,
                         ticks: {
-                            callback: (value) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-                        }
+                            color: textColor,
+                            callback: (value) => formatCurrency(value),
+                        },
+                        grid: { color: borderTone },
+                    },
+                    y: {
+                        ticks: { color: textColor },
+                        grid: { color: borderTone },
                     }
                 },
                 plugins: { legend: { display: false } }
@@ -159,11 +239,17 @@
             },
             options: {
                 scales: {
+                    x: {
+                        ticks: { color: textColor },
+                        grid: { color: borderTone },
+                    },
                     y: {
                         beginAtZero: true,
                         ticks: {
+                            color: textColor,
                             precision: 0,
-                        }
+                        },
+                        grid: { color: borderTone },
                     }
                 },
                 plugins: { legend: { display: false } }
@@ -192,11 +278,17 @@
             },
             options: {
                 scales: {
+                    x: {
+                        ticks: { color: textColor },
+                        grid: { color: borderTone },
+                    },
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            callback: (value) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-                        }
+                            color: textColor,
+                            callback: (value) => formatCurrency(value),
+                        },
+                        grid: { color: borderTone },
                     }
                 },
                 plugins: { legend: { display: false } }

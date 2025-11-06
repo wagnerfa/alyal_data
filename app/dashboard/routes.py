@@ -262,6 +262,8 @@ def user_dashboard():
         manager_note=manager_note,
         insights=insights,
         status_items=status_items,
+        status_labels=status_data['labels'],
+        status_values=status_data['values'],
         top_products_labels=top_products['labels'],
         top_products_values=top_products['values'],
         monthly_sales_labels=monthly_sales['labels'],
