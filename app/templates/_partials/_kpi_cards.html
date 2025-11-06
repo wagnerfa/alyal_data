@@ -6,7 +6,7 @@
     </div>
     <div class="dashboard-card kpi-card">
         <h3>Pedidos</h3>
-        <p class="kpi-value">{{ kpis.pedidos_totais }}</p>
+        <p class="kpi-value">{{ '%.0f'|format(kpis.pedidos_totais) }}</p>
         <p class="kpi-caption">Quantidade total de pedidos válidos.</p>
     </div>
     <div class="dashboard-card kpi-card">

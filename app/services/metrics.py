@@ -82,18 +82,24 @@ def get_kpis(session: Session, start, end, marketplace_id: Optional[int] = None)
             cancelados += count
 
     total_considerado = pedidos_totais + cancelados
-    ticket_medio = float((faturamento_decimal / pedidos_totais) if pedidos_totais else Decimal(0))
-    taxa_cancelamento = float((cancelados / total_considerado) * 100) if total_considerado else 0.0
+    ticket_medio_decimal = (faturamento_decimal / pedidos_totais) if pedidos_totais else Decimal(0)
+    ticket_medio = float(ticket_medio_decimal.quantize(Decimal('0.01')))
+    taxa_cancelamento = float(round((cancelados / total_considerado) * 100, 2)) if total_considerado else 0.0
 
     return {
-        'faturamento': float(faturamento_decimal),
-        'pedidos_totais': pedidos_totais,
-        'ticket_medio': round(ticket_medio, 2),
-        'taxa_cancelamento': round(taxa_cancelamento, 2),
+        'faturamento': float(faturamento_decimal.quantize(Decimal('0.01'))),
+        'pedidos_totais': float(pedidos_totais),
+        'ticket_medio': ticket_medio,
+        'taxa_cancelamento': taxa_cancelamento,
     }
 
 
-def sales_timeseries(session: Session, start, end, marketplace_id: Optional[int] = None) -> List[Dict[str, float]]:
+def sales_timeseries(
+    session: Session,
+    start,
+    end,
+    marketplace_id: Optional[int] = None,
+) -> Dict[str, List[float]]:
     query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
 
     rows = (
@@ -103,7 +109,7 @@ def sales_timeseries(session: Session, start, end, marketplace_id: Optional[int]
             func.coalesce(func.sum(Sale.valor_total_venda), 0).label('total')
         )
         .group_by(Sale.data_venda, Sale.status_pedido)
-        .order_by(Sale.data_venda)
+        .order_by(Sale.data_venda.asc())
         .all()
     )
 
@@ -116,16 +122,27 @@ def sales_timeseries(session: Session, start, end, marketplace_id: Optional[int]
         key = data_venda.isoformat()
         aggregated[key] = aggregated.get(key, Decimal(0)) + total_decimal
 
-    return [
-        {
-            'data': date_key,
-            'faturamento_diario': float(total.quantize(Decimal('0.01')) if isinstance(total, Decimal) else float(total)),
-        }
-        for date_key, total in sorted(aggregated.items())
-    ]
+    labels = []
+    values: List[float] = []
+    for date_key in sorted(aggregated.keys()):
+        labels.append(date_key)
+        total = aggregated[date_key]
+        if isinstance(total, Decimal):
+            total = total.quantize(Decimal('0.01'))
+        values.append(float(total))
+
+    return {
+        'labels': labels,
+        'values': values,
+    }
 
 
-def status_breakdown(session: Session, start, end, marketplace_id: Optional[int] = None) -> Dict[str, int]:
+def status_breakdown(
+    session: Session,
+    start,
+    end,
+    marketplace_id: Optional[int] = None,
+) -> Dict[str, List[float]]:
     query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
 
     rows = (
@@ -134,14 +151,21 @@ def status_breakdown(session: Session, start, end, marketplace_id: Optional[int]
             func.count(Sale.id)
         )
         .group_by(Sale.status_pedido)
+        .order_by(func.count(Sale.id).desc())
         .all()
     )
 
-    breakdown: Dict[str, int] = {}
+    labels: List[str] = []
+    values: List[float] = []
     for status_value, count in rows:
         normalized = _normalize_status(status_value)
-        breakdown[normalized] = breakdown.get(normalized, 0) + count
-    return breakdown
+        labels.append(normalized)
+        values.append(float(count))
+
+    return {
+        'labels': labels,
+        'values': values,
+    }
 
 
 def abc_by_revenue(
@@ -213,3 +237,11 @@ def abc_by_revenue(
         })
 
     return resultado
+
+
+def get_data_boundaries(session: Session, marketplace_id: Optional[int] = None):
+    query = session.query(func.min(Sale.data_venda), func.max(Sale.data_venda))
+    if marketplace_id:
+        query = query.filter(Sale.marketplace_id == marketplace_id)
+    min_date, max_date = query.first() or (None, None)
+    return min_date, max_date
