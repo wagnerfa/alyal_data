@@ -1,5 +1,6 @@
 <div class="dashboard-card filters-card">
-    <form method="get" action="{{ action }}" class="filters-form">
+    {% set form_action = action if action is defined else request.path %}
+    <form method="get" action="{{ form_action }}" class="filters-form">
         <div class="filters-grid">
             {% set start_value = '' %}
             {% if start_date %}

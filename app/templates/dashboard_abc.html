@@ -8,10 +8,14 @@
         <h1>Curva ABC por Faturamento</h1>
     </div>
 
-    {% include '_partials/_filters.html' with action=url_for('dashboard.abc_view') start_date=start_date end_date=end_date marketplaces=marketplaces selected_marketplace=selected_marketplace %}
+    {% set action = url_for('dashboard.abc_view') %}
+    {% include '_partials/_filters.html' %}
 
     <div class="dashboard-grid">
-        {% include '_partials/_chart_block.html' with title='Distribuição de faturamento (Top 10 SKUs)' canvas_id='abcChart' description='Barras exibem faturamento e a linha mostra o acumulado percentual.' %}
+        {% set title = 'Distribuição de faturamento (Top 10 SKUs)' %}
+        {% set canvas_id = 'abcChart' %}
+        {% set description = 'Barras exibem faturamento e a linha mostra o acumulado percentual.' %}
+        {% include '_partials/_chart_block.html' %}
     </div>
 
     <div class="dashboard-card">

@@ -8,10 +8,15 @@
         <h1>Status dos Pedidos</h1>
     </div>
 
-    {% include '_partials/_filters.html' with action=url_for('dashboard.status_view') start_date=start_date end_date=end_date marketplaces=marketplaces selected_marketplace=selected_marketplace %}
+    {% set action = url_for('dashboard.status_view') %}
+    {% include '_partials/_filters.html' %}
 
     <div class="dashboard-grid">
-        {% include '_partials/_chart_block.html' with title='Distribuição por status' canvas_id='statusChart' description='Visualização das proporções por status no período selecionado.' height=260 %}
+        {% set title = 'Distribuição por status' %}
+        {% set canvas_id = 'statusChart' %}
+        {% set description = 'Visualização das proporções por status no período selecionado.' %}
+        {% set height = 260 %}
+        {% include '_partials/_chart_block.html' %}
     </div>
 
     <div class="dashboard-card">

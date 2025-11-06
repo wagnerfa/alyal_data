@@ -8,7 +8,10 @@
         <h1>Vendas Importadas</h1>
     </div>
 
-    {% include '_partials/_filters.html' with action=url_for('data.sales_list') start_date=start_date|default('', true) end_date=end_date|default('', true) marketplaces=marketplaces selected_marketplace=selected_marketplace %}
+    {% set action = url_for('data.sales_list') %}
+    {% set start_date = start_date|default('', true) %}
+    {% set end_date = end_date|default('', true) %}
+    {% include '_partials/_filters.html' %}
 
     <div class="dashboard-card">
         <div class="table-responsive">

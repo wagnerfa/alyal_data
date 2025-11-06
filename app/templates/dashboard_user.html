@@ -17,12 +17,16 @@
         </div>
     </div>
 
-    {% include '_partials/_filters.html' with action=url_for('dashboard.user_dashboard') start_date=start_date end_date=end_date marketplaces=marketplaces selected_marketplace=selected_marketplace %}
+    {% set action = url_for('dashboard.user_dashboard') %}
+    {% include '_partials/_filters.html' %}
 
     {% include '_partials/_kpi_cards.html' %}
 
     <div class="dashboard-grid">
-        {% include '_partials/_chart_block.html' with title='Faturamento diário' canvas_id='userRevenueChart' description='Evolução do faturamento considerando pedidos pagos, enviados e entregues.' %}
+        {% set title = 'Faturamento diário' %}
+        {% set canvas_id = 'userRevenueChart' %}
+        {% set description = 'Evolução do faturamento considerando pedidos pagos, enviados e entregues.' %}
+        {% include '_partials/_chart_block.html' %}
         <div class="dashboard-card insights-card">
             <h3>Resumo do período</h3>
             <ul class="insights-list">
