@@ -13,11 +13,24 @@
 
     {% include '_partials/_kpi_cards.html' %}
 
+    {% set title = 'Faturamento diário' %}
+    {% set canvas_id = 'userRevenueChart' %}
+    {% set description = 'Evolução do faturamento considerando pedidos pagos, enviados e entregues.' %}
+    {% include '_partials/_chart_block.html' %}
+
     <div class="dashboard-grid">
-        {% set title = 'Faturamento diário' %}
-        {% set canvas_id = 'userRevenueChart' %}
-        {% set description = 'Evolução do faturamento considerando pedidos pagos, enviados e entregues.' %}
-        {% include '_partials/_chart_block.html' %}
+        <div class="dashboard-card">
+            <h3>Status dos pedidos</h3>
+            <p class="card-description">Resumo do volume por status no período selecionado.</p>
+            <ul class="insights-list">
+                {% for item in status_items %}
+                    <li><strong>{{ item.label }}</strong>: {{ item.value | decimal_br(0) }}</li>
+                {% else %}
+                    <li>Nenhum pedido registrado no período.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
         <div class="dashboard-card insights-card">
             <h3>Resumo do período</h3>
             <ul class="insights-list">
@@ -28,6 +41,23 @@
                 {% endfor %}
             </ul>
         </div>
+
+        {% set title = 'Top 5 produtos por faturamento' %}
+        {% set canvas_id = 'topProductsChart' %}
+        {% set description = 'Produtos com maior faturamento no período.' %}
+        {% include '_partials/_chart_block.html' %}
+    </div>
+
+    <div class="dashboard-grid">
+        {% set title = 'Vendas por mês' %}
+        {% set canvas_id = 'monthlySalesChart' %}
+        {% set description = 'Total de pedidos válidos por mês.' %}
+        {% include '_partials/_chart_block.html' %}
+
+        {% set title = 'Faturamento por mês' %}
+        {% set canvas_id = 'monthlyRevenueChart' %}
+        {% set description = 'Soma do faturamento mensal considerando pedidos pagos, enviados e entregues.' %}
+        {% include '_partials/_chart_block.html' %}
     </div>
 
     <div class="dashboard-card note-card">
@@ -45,15 +75,17 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    const timeseriesLabels = {{ timeseries_labels|tojson }};
+    const timeseriesValues = {{ timeseries_values|tojson }};
     const userCtx = document.getElementById('userRevenueChart');
-    if (userCtx) {
+    if (userCtx && Array.isArray(timeseriesValues) && timeseriesValues.length) {
         new Chart(userCtx, {
             type: 'line',
             data: {
-                labels: {{ timeseries_labels|tojson }},
+                labels: timeseriesLabels,
                 datasets: [{
                     label: 'Faturamento diário',
-                    data: {{ timeseries_values|tojson }},
+                    data: timeseriesValues,
                     fill: false,
                     borderColor: '#8082A6',
                     backgroundColor: 'rgba(128, 130, 166, 0.25)',
@@ -74,6 +106,100 @@
                 plugins: {
                     legend: { display: false }
                 }
+            }
+        });
+    }
+
+    const topProductsLabels = {{ top_products_labels|tojson }};
+    const topProductsValues = {{ top_products_values|tojson }};
+    const topProductsCtx = document.getElementById('topProductsChart');
+    if (topProductsCtx && Array.isArray(topProductsValues) && topProductsValues.length) {
+        new Chart(topProductsCtx, {
+            type: 'bar',
+            data: {
+                labels: topProductsLabels,
+                datasets: [{
+                    label: 'Faturamento',
+                    data: topProductsValues,
+                    backgroundColor: 'rgba(128, 130, 166, 0.6)',
+                    borderColor: '#8082A6',
+                    borderWidth: 1.5,
+                }],
+            },
+            options: {
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (value) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                        }
+                    }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    const monthlySalesLabels = {{ monthly_sales_labels|tojson }};
+    const monthlySalesValues = {{ monthly_sales_values|tojson }};
+    const monthlySalesCtx = document.getElementById('monthlySalesChart');
+    if (monthlySalesCtx && Array.isArray(monthlySalesValues) && monthlySalesValues.length) {
+        new Chart(monthlySalesCtx, {
+            type: 'bar',
+            data: {
+                labels: monthlySalesLabels,
+                datasets: [{
+                    label: 'Pedidos válidos',
+                    data: monthlySalesValues,
+                    backgroundColor: 'rgba(91, 155, 213, 0.6)',
+                    borderColor: '#5B9BD5',
+                    borderWidth: 1.5,
+                }],
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0,
+                        }
+                    }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    const monthlyRevenueLabels = {{ monthly_revenue_labels|tojson }};
+    const monthlyRevenueValues = {{ monthly_revenue_values|tojson }};
+    const monthlyRevenueCtx = document.getElementById('monthlyRevenueChart');
+    if (monthlyRevenueCtx && Array.isArray(monthlyRevenueValues) && monthlyRevenueValues.length) {
+        new Chart(monthlyRevenueCtx, {
+            type: 'line',
+            data: {
+                labels: monthlyRevenueLabels,
+                datasets: [{
+                    label: 'Faturamento mensal',
+                    data: monthlyRevenueValues,
+                    fill: true,
+                    borderColor: '#34BFA3',
+                    backgroundColor: 'rgba(52, 191, 163, 0.2)',
+                    tension: 0.25,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                }],
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (value) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                        }
+                    }
+                },
+                plugins: { legend: { display: false } }
             }
         });
     }

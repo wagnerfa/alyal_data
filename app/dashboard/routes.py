@@ -10,8 +10,11 @@ from app.services.metrics import (
     abc_by_revenue,
     get_data_boundaries,
     get_kpis,
+    monthly_revenue_totals,
+    monthly_sales_counts,
     sales_timeseries,
     status_breakdown,
+    top_products_by_revenue,
 )
 from app.utils.formatting import format_currency_br, format_decimal_br
 
@@ -221,6 +224,19 @@ def user_dashboard():
                     'info',
                 )
 
+    status_data = status_breakdown(db.session, start_date, end_date, marketplace_id)
+    status_items = [
+        {
+            'label': label.replace('_', ' ').title(),
+            'value': int(value) if float(value).is_integer() else float(value),
+        }
+        for label, value in zip(status_data['labels'], status_data['values'])
+    ]
+
+    top_products = top_products_by_revenue(db.session, start_date, end_date, marketplace_id)
+    monthly_sales = monthly_sales_counts(db.session, start_date, end_date, marketplace_id)
+    monthly_revenue = monthly_revenue_totals(db.session, start_date, end_date, marketplace_id)
+
     manager_note = (
         ManagerNote.query
         .filter_by(periodo_inicio=start_date, periodo_fim=end_date)
@@ -245,6 +261,13 @@ def user_dashboard():
         timeseries_values=timeseries['values'],
         manager_note=manager_note,
         insights=insights,
+        status_items=status_items,
+        top_products_labels=top_products['labels'],
+        top_products_values=top_products['values'],
+        monthly_sales_labels=monthly_sales['labels'],
+        monthly_sales_values=monthly_sales['values'],
+        monthly_revenue_labels=monthly_revenue['labels'],
+        monthly_revenue_values=monthly_revenue['values'],
     )
 
 
