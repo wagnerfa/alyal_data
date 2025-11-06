@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Vendas Importadas - Alyal{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <h1>Vendas Importadas</h1>
+    </div>
+
+    {% set action = url_for('data.sales_list') %}
+    {% set start_date = start_date|default('', true) %}
+    {% set end_date = end_date|default('', true) %}
+    {% include '_partials/_filters.html' %}
+
+    <div class="dashboard-card">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data da venda</th>
+                        <th>Marketplace</th>
+                        <th>SKU</th>
+                        <th>Produto</th>
+                        <th>Status</th>
+                        <th>Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in sales %}
+                        <tr>
+                            <td data-label="Data">{{ sale.data_venda.strftime('%d/%m/%Y') }}</td>
+                            <td data-label="Marketplace">{{ sale.marketplace.nome }}</td>
+                            <td data-label="SKU">{{ sale.sku }}</td>
+                            <td data-label="Produto">{{ sale.nome_produto }}</td>
+                            <td data-label="Status">{{ sale.status_pedido.replace('_', ' ')|title }}</td>
+                            <td data-label="Valor">{{ sale.valor_total_venda|currency_br }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6">Nenhum registro encontrado.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if pagination.pages > 1 %}
+        <div class="pagination">
+            {% if pagination.has_prev %}
+                <a href="{{ url_for('data.sales_list', page=pagination.prev_num, start_date=start_date if start_date else None, end_date=end_date if end_date else None, marketplace_id=selected_marketplace if selected_marketplace else None) }}">Anterior</a>
+            {% else %}
+                <span class="disabled">Anterior</span>
+            {% endif %}
+            <span>Página {{ pagination.page }} de {{ pagination.pages }}</span>
+            {% if pagination.has_next %}
+                <a href="{{ url_for('data.sales_list', page=pagination.next_num, start_date=start_date if start_date else None, end_date=end_date if end_date else None, marketplace_id=selected_marketplace if selected_marketplace else None) }}">Próxima</a>
+            {% else %}
+                <span class="disabled">Próxima</span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
