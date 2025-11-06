@@ -1,0 +1,9 @@
+<div class="dashboard-card chart-card">
+    <div class="chart-header">
+        <h3>{{ title }}</h3>
+        {% if description %}
+            <p class="chart-caption">{{ description }}</p>
+        {% endif %}
+    </div>
+    <canvas id="{{ canvas_id }}" height="{{ height|default(240) }}"></canvas>
+</div>
