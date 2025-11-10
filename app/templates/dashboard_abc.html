@@ -20,8 +20,19 @@
 
     <div class="dashboard-card">
         <h3>Detalhes por SKU</h3>
+
+        <!-- Controles de pesquisa e info -->
+        <div class="table-controls">
+            <div class="table-search">
+                <input type="text" id="skuSearch" placeholder="Pesquisar por SKU ou nome do produto..." />
+            </div>
+            <div class="table-info">
+                Mostrando <span id="tableCount">0</span> de <span id="tableTotal">0</span> itens
+            </div>
+        </div>
+
         <div class="table-responsive">
-            <table>
+            <table id="skuTable">
                 <thead>
                     <tr>
                         <th>SKU</th>
@@ -32,9 +43,9 @@
                         <th>Classe</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="skuTableBody">
                     {% for item in abc_data %}
-                        <tr>
+                        <tr class="sku-row" data-sku="{{ item.sku|lower }}" data-nome="{{ item.nome_produto|lower }}">
                             <td data-label="SKU">{{ item.sku }}</td>
                             <td data-label="Nome">{{ item.nome_produto }}</td>
                             <td data-label="Faturamento">{{ item.faturamento|currency_br }}</td>
@@ -43,12 +54,19 @@
                             <td data-label="Classe"><span class="badge badge-class-{{ item.classe|lower }}">{{ item.classe }}</span></td>
                         </tr>
                     {% else %}
-                        <tr>
+                        <tr id="noDataRow">
                             <td colspan="6">Nenhum dado disponível para o período selecionado.</td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+
+        <!-- Paginação -->
+        <div class="table-pagination" id="tablePagination">
+            <button id="prevPage" onclick="changePage(-1)">← Anterior</button>
+            <span class="page-info">Página <span id="currentPage">1</span> de <span id="totalPages">1</span></span>
+            <button id="nextPage" onclick="changePage(1)">Próxima →</button>
         </div>
     </div>
 </div>
@@ -116,6 +134,97 @@
                 }
             }
         });
+    }
+
+    // Paginação e pesquisa da tabela
+    let currentPage = 1;
+    const rowsPerPage = 20;
+    let allRows = [];
+    let filteredRows = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const skuTableBody = document.getElementById('skuTableBody');
+        const noDataRow = document.getElementById('noDataRow');
+
+        // Se não há dados, esconder paginação
+        if (noDataRow) {
+            document.getElementById('tablePagination').style.display = 'none';
+            document.getElementById('tableTotal').textContent = '0';
+            document.getElementById('tableCount').textContent = '0';
+            return;
+        }
+
+        allRows = Array.from(document.querySelectorAll('.sku-row'));
+        filteredRows = [...allRows];
+
+        updateTable();
+
+        // Pesquisa
+        const searchInput = document.getElementById('skuSearch');
+        searchInput.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+
+            if (searchTerm === '') {
+                filteredRows = [...allRows];
+            } else {
+                filteredRows = allRows.filter(row => {
+                    const sku = row.getAttribute('data-sku');
+                    const nome = row.getAttribute('data-nome');
+                    return sku.includes(searchTerm) || nome.includes(searchTerm);
+                });
+            }
+
+            currentPage = 1;
+            updateTable();
+        });
+    });
+
+    function updateTable() {
+        const totalRows = filteredRows.length;
+        const totalPages = Math.ceil(totalRows / rowsPerPage);
+
+        // Esconder todas as linhas
+        allRows.forEach(row => row.style.display = 'none');
+
+        // Mostrar apenas as linhas da página atual
+        const start = (currentPage - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+        const rowsToShow = filteredRows.slice(start, end);
+
+        rowsToShow.forEach(row => row.style.display = '');
+
+        // Atualizar informações
+        document.getElementById('tableTotal').textContent = totalRows;
+        document.getElementById('tableCount').textContent = rowsToShow.length;
+        document.getElementById('currentPage').textContent = currentPage;
+        document.getElementById('totalPages').textContent = totalPages || 1;
+
+        // Atualizar botões de paginação
+        const prevButton = document.getElementById('prevPage');
+        const nextButton = document.getElementById('nextPage');
+
+        prevButton.disabled = currentPage === 1;
+        nextButton.disabled = currentPage === totalPages || totalPages === 0;
+
+        // Esconder paginação se houver apenas uma página
+        if (totalPages <= 1) {
+            document.getElementById('tablePagination').style.display = 'none';
+        } else {
+            document.getElementById('tablePagination').style.display = 'flex';
+        }
+    }
+
+    function changePage(direction) {
+        const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+        const newPage = currentPage + direction;
+
+        if (newPage >= 1 && newPage <= totalPages) {
+            currentPage = newPage;
+            updateTable();
+
+            // Scroll suave para o topo da tabela
+            document.getElementById('skuTable').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 </script>
 {% endblock %}

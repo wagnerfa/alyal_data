@@ -13,7 +13,17 @@
     {% if current_user.is_authenticated %}
     <nav class="main-nav">
         <div class="nav-wrapper">
-            <span class="nav-title">Alyal Insights</span>
+            <div class="nav-brand">
+                {% if current_user.logo_filename %}
+                    <img src="{{ url_for('static', filename='uploads/logos/' ~ current_user.logo_filename) }}" alt="Logo {{ current_user.username }}" class="nav-user-logo">
+                {% else %}
+                    <div class="nav-user-logo-placeholder">{{ current_user.username[0].upper() }}</div>
+                {% endif %}
+                <div>
+                    <div class="nav-title">{{ current_user.username }}</div>
+                    <div class="nav-subtitle">Alyal Insights</div>
+                </div>
+            </div>
             <ul class="nav-links">
                 <li><a href="{{ url_for('dashboard.manager_dashboard' if current_user.is_manager() else 'dashboard.user_dashboard') }}">Dashboard</a></li>
                 <li><a href="{{ url_for('dashboard.abc_view') }}">Produtos (ABC)</a></li>
