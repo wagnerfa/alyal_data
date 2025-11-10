@@ -6,9 +6,43 @@
     <title>{% block title %}Sistema Flask{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
-    {% block content %}{% endblock %}
-    
+<body data-theme="light" class="{% if current_user.is_authenticated %}app-layout{% else %}auth-layout{% endif %}">
+    <button type="button" class="theme-toggle theme-toggle-fixed" id="themeToggle" aria-label="Alternar tema">
+        <span id="themeToggleIcon" aria-hidden="true">🌞</span>
+    </button>
+    {% if current_user.is_authenticated %}
+    <nav class="main-nav">
+        <div class="nav-wrapper">
+            <span class="nav-title">Alyal Insights</span>
+            <ul class="nav-links">
+                <li><a href="{{ url_for('dashboard.manager_dashboard' if current_user.is_manager() else 'dashboard.user_dashboard') }}">Dashboard</a></li>
+                <li><a href="{{ url_for('dashboard.abc_view') }}">Produtos (ABC)</a></li>
+                <li><a href="{{ url_for('dashboard.status_view') }}">Status</a></li>
+                {% if current_user.is_manager() %}
+                    <li><a href="{{ url_for('dashboard.manage_companies') }}">Empresas</a></li>
+                    <li><a href="{{ url_for('data.sales_list') }}">Vendas</a></li>
+                    <li><a href="{{ url_for('data.upload_form') }}">Importar Dados</a></li>
+                {% else %}
+                    <li><a href="{{ url_for('dashboard.user_settings') }}">Configurações</a></li>
+                {% endif %}
+                <li><a href="{{ url_for('auth.logout') }}" class="nav-logout">Sair</a></li>
+            </ul>
+        </div>
+    </nav>
+    {% endif %}
+    <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-container">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block extra_js %}{% endblock %}
 </body>

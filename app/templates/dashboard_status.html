@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Status dos Pedidos - Alyal{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <h1>Status dos Pedidos</h1>
+    </div>
+
+    {% set action = url_for('dashboard.status_view') %}
+    {% include '_partials/_filters.html' %}
+
+    <div class="dashboard-grid">
+        {% set title = 'Distribuição por status' %}
+        {% set canvas_id = 'statusChart' %}
+        {% set description = 'Visualização das proporções por status no período selecionado.' %}
+        {% set height = 260 %}
+        {% include '_partials/_chart_block.html' %}
+    </div>
+
+    <div class="dashboard-card">
+        <h3>Resumo por status</h3>
+        <p class="card-description">Comparativo com o período anterior ({{ previous_period[0].strftime('%d/%m/%Y') }} a {{ previous_period[1].strftime('%d/%m/%Y') }}).</p>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Pedidos (período)</th>
+                        <th>Pedidos (período anterior)</th>
+                        <th>Variação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in status_rows %}
+                        <tr>
+                            <td data-label="Status">{{ row.status.replace('_', ' ')|title }}</td>
+                            <td data-label="Atual">{{ row.current }}</td>
+                            <td data-label="Anterior">{{ row.previous }}</td>
+                            <td data-label="Variação">
+                                {% if row.variation is none %}
+                                    Novo
+                                {% else %}
+                                    {{ '%+.1f'|format(row.variation) }}%
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="4">Nenhum pedido encontrado para o período selecionado.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const statusCtx = document.getElementById('statusChart');
+    if (statusCtx) {
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ status_labels|tojson }},
+                datasets: [{
+                    data: {{ status_values|tojson }},
+                    backgroundColor: [
+                        '#F2BBC9', '#AFA9D9', '#8082A6', '#F2A172', '#B8C1EC', '#F4C095'
+                    ],
+                    borderWidth: 2,
+                    borderColor: 'rgba(255,255,255,0.8)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

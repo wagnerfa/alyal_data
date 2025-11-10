@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Configurações da Conta - Alyal{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <h1>Configurações da conta</h1>
+        <div class="user-info">
+            <div class="user-details">
+                <h3>{{ user.username }}</h3>
+                <span class="badge badge-user">Usuário</span>
+            </div>
+            <div class="user-avatar">
+                {{ user.username[0].upper() }}
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="dashboard-card">
+            <h3>Alterar senha</h3>
+            <p class="card-description">Atualize a senha utilizada para acessar o painel de resultados da sua empresa.</p>
+            <form method="post">
+                <div class="form-group">
+                    <label for="currentPassword">Senha atual</label>
+                    <input type="password" id="currentPassword" name="current_password" required>
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">Nova senha</label>
+                    <input type="password" id="newPassword" name="new_password" placeholder="Mínimo 6 caracteres" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirmar nova senha</label>
+                    <input type="password" id="confirmPassword" name="confirm_password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Salvar nova senha</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
