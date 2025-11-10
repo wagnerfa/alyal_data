@@ -43,7 +43,8 @@ body {
     align-items: stretch;
     color: var(--text-primary);
     transition: background 0.3s ease, color 0.3s ease;
-    padding: 80px 20px 40px;
+    padding: 0 20px 40px;
+    padding-top: 120px;
 }
 
 body[data-theme="dark"] {
@@ -72,8 +73,8 @@ body[data-theme="dark"] {
 /* Botão de alternância de tema */
 .theme-toggle {
     position: fixed;
-    top: clamp(12px, 2.5vh, 24px);
-    right: clamp(12px, 2.5vh, 24px);
+    top: 20px;
+    right: 20px;
     width: 48px;
     height: 48px;
     border-radius: 50%;
@@ -88,7 +89,7 @@ body[data-theme="dark"] {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     color: var(--text-primary);
     font-size: 20px;
-    z-index: 1000;
+    z-index: 10000;
 }
 
 .theme-toggle:hover,
@@ -125,12 +126,9 @@ body[data-theme="dark"] {
     height: 100% !important;
 }
 
-/* Botão de tema fixo no topo direito */
+/* Botão de tema fixo no topo direito - classe mantida para compatibilidade */
 .theme-toggle-fixed {
-    position: fixed;
-    top: 12px;
-    right: 16px;
-    z-index: 9999;
+    /* Estilos já aplicados em .theme-toggle */
 }
 
 /* Container principal */
@@ -341,11 +339,13 @@ body[data-theme="dark"] {
 }
 
 .dashboard-header h1 {
-    font-size: 32px;
+    font-size: 36px;
+    font-weight: 700;
     background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    letter-spacing: -0.5px;
 }
 
 .user-info {
@@ -421,9 +421,11 @@ body[data-theme="dark"] {
 }
 
 .dashboard-card h3 {
-    font-size: 18px;
+    font-size: 20px;
+    font-weight: 600;
     margin-bottom: 15px;
-    color: var(--color-primary);
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
 }
 
 .dashboard-card p {
@@ -605,10 +607,13 @@ tbody tr:hover {
 /* Navegação */
 .main-nav {
     width: 100%;
-    margin: 0 auto 20px;
-    position: sticky;
-    top: 20px;
-    z-index: 900;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9000;
+    padding: 20px;
+    background: transparent;
 }
 
 .nav-wrapper {
@@ -626,8 +631,9 @@ tbody tr:hover {
 
 .nav-title {
     font-weight: 700;
-    font-size: 18px;
+    font-size: 20px;
     color: var(--color-accent);
+    letter-spacing: -0.3px;
 }
 
 .nav-links {
@@ -834,17 +840,256 @@ tbody tr:hover {
     pointer-events: none;
 }
 
+/* Modal */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 10001;
+    animation: fadeIn 0.3s ease;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    backdrop-filter: var(--surface-backdrop);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 32px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+    position: relative;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--card-border);
+}
+
+.modal-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+    margin: 0;
+}
+
+.modal-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--input-bg);
+    color: var(--text-muted);
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    background: var(--color-warning);
+    color: #fff;
+    transform: rotate(90deg);
+}
+
+.modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.modal-company-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: var(--input-bg);
+    border-radius: 12px;
+    border: 1px solid var(--card-border);
+}
+
+.modal-company-logo {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 1px solid var(--card-border);
+    background: var(--card-bg);
+    padding: 4px;
+}
+
+.modal-company-logo-placeholder {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--color-secondary), var(--color-accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.modal-company-details h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 4px 0;
+}
+
+.modal-company-details p {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.modal-section {
+    padding: 20px;
+    background: var(--input-bg);
+    border-radius: 12px;
+    border: 1px solid var(--card-border);
+}
+
+.modal-section h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-section h4::before {
+    content: '';
+    width: 4px;
+    height: 16px;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    border-radius: 2px;
+}
+
+/* Lista de empresas melhorada */
+.companies-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.company-item {
+    background: var(--card-bg);
+    backdrop-filter: var(--surface-backdrop);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.company-item:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--card-hover-shadow);
+    border-color: var(--color-secondary);
+}
+
+.company-item-logo {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 1px solid var(--card-border);
+    background: var(--input-bg);
+    padding: 4px;
+    flex-shrink: 0;
+}
+
+.company-item-logo-placeholder {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--color-secondary), var(--color-accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 20px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.company-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.company-item-info h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 4px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.company-item-info p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* Responsividade */
 @media (max-width: 1024px) {
     body {
-        padding: 80px 16px 40px;
+        padding: 0 16px 40px;
+        padding-top: 120px;
     }
 }
 
 @media (max-width: 768px) {
     body {
         align-items: flex-start;
-        padding-top: 80px;
+        padding-top: 140px;
     }
 
     .theme-toggle {
@@ -887,7 +1132,8 @@ tbody tr:hover {
 
 @media (max-width: 600px) {
     body {
-        padding: 80px 12px 40px;
+        padding: 0 12px 40px;
+        padding-top: 140px;
     }
 
     .login-card {
@@ -917,6 +1163,23 @@ tbody tr:hover {
 
     .users-table #userSearch {
         width: 100%;
+    }
+
+    .modal-content {
+        padding: 24px;
+        max-height: 90vh;
+    }
+
+    .modal-header h2 {
+        font-size: 20px;
+    }
+
+    .companies-list {
+        grid-template-columns: 1fr;
+    }
+
+    .company-item {
+        padding: 16px;
     }
 }
 
