@@ -1,9 +1,12 @@
+import os
+
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from config import Config
 
 from app.utils.formatting import format_currency_br, format_decimal_br
+from sqlalchemy import inspect, text
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -11,6 +14,7 @@ login_manager = LoginManager()
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(Config)
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     
     # Inicializar extensões
     db.init_app(app)
@@ -34,6 +38,14 @@ def create_app():
         db.create_all()
         # Criar usuário admin padrão se não existir
         from app.models import User, Marketplace
+        inspector = inspect(db.engine)
+        user_columns = {col['name'] for col in inspector.get_columns('user')}
+        if 'logo_filename' not in user_columns:
+            try:
+                db.session.execute(text('ALTER TABLE user ADD COLUMN logo_filename VARCHAR(255)'))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
         if not User.query.filter_by(username='admin').first():
             admin = User(username='admin', email='admin@example.com', role='manager')
             admin.set_password('admin123')

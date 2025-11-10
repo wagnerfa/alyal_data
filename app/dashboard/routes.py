@@ -1,11 +1,13 @@
+import os
 from datetime import date, datetime, timedelta
+from uuid import uuid4
 
-from flask import flash, redirect, render_template, request, url_for
+from flask import current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app import db
 from app.dashboard import dashboard_bp
-from app.models import ManagerNote, Marketplace
+from app.models import ManagerNote, Marketplace, User
 from app.services.metrics import (
     abc_by_revenue,
     get_data_boundaries,
@@ -17,6 +19,7 @@ from app.services.metrics import (
     top_products_by_revenue,
 )
 from app.utils.formatting import format_currency_br, format_decimal_br
+from werkzeug.utils import secure_filename
 
 
 def _redirect_to_role_dashboard():
@@ -110,10 +113,167 @@ def _generate_insights(kpis, previous_kpis, abc_data):
     return insights
 
 
+def _allowed_logo(filename):
+    if not filename or '.' not in filename:
+        return False
+    allowed = current_app.config.get('ALLOWED_LOGO_EXTENSIONS', {'png', 'jpg', 'jpeg', 'gif', 'webp'})
+    extension = filename.rsplit('.', 1)[1].lower()
+    return extension in allowed
+
+
+def _remove_logo_file(filename):
+    if not filename:
+        return
+    upload_folder = current_app.config.get('UPLOAD_FOLDER')
+    if not upload_folder:
+        return
+    filepath = os.path.join(upload_folder, filename)
+    try:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+    except OSError:
+        pass
+
+
+def _save_logo_file(storage, previous=None):
+    if not storage or not storage.filename:
+        return previous
+    filename = secure_filename(storage.filename)
+    if not _allowed_logo(filename):
+        return previous
+    extension = filename.rsplit('.', 1)[1].lower()
+    unique_name = f"{uuid4().hex}.{extension}"
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    os.makedirs(upload_folder, exist_ok=True)
+    filepath = os.path.join(upload_folder, unique_name)
+    storage.stream.seek(0)
+    storage.save(filepath)
+    if previous and previous != unique_name:
+        _remove_logo_file(previous)
+    return unique_name
+
+
 @dashboard_bp.route('/')
 @login_required
 def dashboard_index():
     return _redirect_to_role_dashboard()
+
+
+@dashboard_bp.route('/companies', methods=['GET', 'POST'])
+@login_required
+def manage_companies():
+    if not current_user.is_manager():
+        return _redirect_to_role_dashboard()
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        if action == 'create':
+            username = (request.form.get('username') or '').strip()
+            email = (request.form.get('email') or '').strip()
+            password = request.form.get('password') or ''
+            confirm_password = request.form.get('confirm_password') or ''
+            pending_logo = request.files.get('logo')
+
+            errors = []
+            if not username or not email or not password:
+                errors.append('Informe nome de usuário, e-mail e senha para cadastrar a empresa.')
+            if password and len(password) < 6:
+                errors.append('A senha deve conter ao menos 6 caracteres.')
+            if password != confirm_password:
+                errors.append('A confirmação da senha não confere.')
+            if username and User.query.filter_by(username=username).first():
+                errors.append('Já existe uma empresa com esse nome de usuário.')
+            if email and User.query.filter_by(email=email).first():
+                errors.append('Já existe uma empresa utilizando esse e-mail.')
+            if pending_logo and pending_logo.filename and not _allowed_logo(pending_logo.filename):
+                errors.append('Formato de logotipo inválido. Utilize PNG, JPG, JPEG, GIF ou WEBP.')
+
+            if errors:
+                for message in errors:
+                    flash(message, 'error')
+            else:
+                logo_filename = None
+                if pending_logo and pending_logo.filename:
+                    logo_filename = _save_logo_file(pending_logo)
+                new_user = User(
+                    username=username,
+                    email=email,
+                    role='user',
+                    logo_filename=logo_filename,
+                )
+                new_user.set_password(password)
+                db.session.add(new_user)
+                db.session.commit()
+                flash('Empresa cadastrada com sucesso.', 'success')
+
+        elif action == 'password':
+            user_id = request.form.get('user_id', type=int)
+            new_password = request.form.get('new_password') or ''
+            confirm_password = request.form.get('confirm_password') or ''
+            company = User.query.filter_by(id=user_id, role='user').first()
+
+            if not company:
+                flash('Empresa não encontrada.', 'error')
+            else:
+                errors = []
+                if not new_password:
+                    errors.append('Informe a nova senha.')
+                if new_password and len(new_password) < 6:
+                    errors.append('A nova senha deve conter ao menos 6 caracteres.')
+                if new_password != confirm_password:
+                    errors.append('A confirmação da senha não confere.')
+
+                if errors:
+                    for message in errors:
+                        flash(message, 'error')
+                else:
+                    company.set_password(new_password)
+                    db.session.commit()
+                    flash('Senha atualizada com sucesso.', 'success')
+
+        elif action == 'logo':
+            user_id = request.form.get('user_id', type=int)
+            company = User.query.filter_by(id=user_id, role='user').first()
+            logo_file = request.files.get('logo')
+
+            if not company:
+                flash('Empresa não encontrada.', 'error')
+            elif not logo_file or not logo_file.filename:
+                flash('Selecione um arquivo de logotipo para enviar.', 'error')
+            elif not _allowed_logo(logo_file.filename):
+                flash('Formato de logotipo inválido. Utilize PNG, JPG, JPEG, GIF ou WEBP.', 'error')
+            else:
+                company.logo_filename = _save_logo_file(logo_file, previous=company.logo_filename)
+                db.session.commit()
+                flash('Logotipo atualizado com sucesso.', 'success')
+
+        elif action == 'delete':
+            user_id = request.form.get('user_id', type=int)
+            company = User.query.filter_by(id=user_id, role='user').first()
+            if not company:
+                flash('Empresa não encontrada.', 'error')
+            else:
+                _remove_logo_file(company.logo_filename)
+                db.session.delete(company)
+                db.session.commit()
+                flash('Empresa removida com sucesso.', 'success')
+
+        return redirect(url_for('dashboard.manage_companies'))
+
+    companies = (
+        User.query.filter_by(role='user')
+        .order_by(User.username.asc())
+        .all()
+    )
+
+    allowed_extensions = ', '.join(sorted(current_app.config.get('ALLOWED_LOGO_EXTENSIONS', [])))
+
+    return render_template(
+        'dashboard_companies.html',
+        companies=companies,
+        allowed_extensions=allowed_extensions,
+    )
 
 
 @dashboard_bp.route('/manager', methods=['GET', 'POST'])
@@ -271,6 +431,43 @@ def user_dashboard():
         monthly_revenue_labels=monthly_revenue['labels'],
         monthly_revenue_values=monthly_revenue['values'],
     )
+
+
+@dashboard_bp.route('/settings', methods=['GET', 'POST'])
+@login_required
+def user_settings():
+    if current_user.is_manager():
+        return _redirect_to_role_dashboard()
+
+    if request.method == 'POST':
+        current_password = request.form.get('current_password') or ''
+        new_password = request.form.get('new_password') or ''
+        confirm_password = request.form.get('confirm_password') or ''
+
+        errors = []
+        if not current_password:
+            errors.append('Informe a senha atual.')
+        elif not current_user.check_password(current_password):
+            errors.append('Senha atual incorreta.')
+
+        if not new_password:
+            errors.append('Informe a nova senha.')
+        elif len(new_password) < 6:
+            errors.append('A nova senha deve conter ao menos 6 caracteres.')
+
+        if new_password != confirm_password:
+            errors.append('A confirmação da nova senha não confere.')
+
+        if errors:
+            for message in errors:
+                flash(message, 'error')
+        else:
+            current_user.set_password(new_password)
+            db.session.commit()
+            flash('Senha atualizada com sucesso.', 'success')
+            return redirect(url_for('dashboard.user_settings'))
+
+    return render_template('user_settings.html', user=current_user)
 
 
 @dashboard_bp.route('/abc')
