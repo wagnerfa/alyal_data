@@ -37,6 +37,17 @@
                 </select>
             </div>
             {% endif %}
+            {% if companies %}
+            <div class="form-group">
+                <label for="company_id">Empresa</label>
+                <select id="company_id" name="company_id">
+                    <option value="">Selecione a empresa</option>
+                    {% for company in companies %}
+                        <option value="{{ company.id }}" {% if selected_company == company.id %}selected{% endif %}>{{ company.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
             <div class="form-group filters-submit">
                 <label>&nbsp;</label>
                 <button type="submit" class="btn btn-primary btn-apply">Aplicar filtros</button>
