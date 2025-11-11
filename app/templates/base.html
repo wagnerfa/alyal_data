@@ -29,15 +29,26 @@
                     {% endif %}
                 {% endif %}
             </div>
+            {% set current_company_id = None %}
+            {% if current_user.is_manager() %}
+                {% if selected_company is defined and selected_company %}
+                    {% set current_company_id = selected_company %}
+                {% elif request.args.get('company_id') %}
+                    {% set current_company_id = request.args.get('company_id') %}
+                {% endif %}
+            {% endif %}
             <ul class="nav-links">
-                <li><a href="{{ url_for('dashboard.manager_dashboard' if current_user.is_manager() else 'dashboard.user_dashboard') }}">Dashboard</a></li>
-                <li><a href="{{ url_for('dashboard.abc_view') }}">Produtos (ABC)</a></li>
-                <li><a href="{{ url_for('dashboard.status_view') }}">Status</a></li>
                 {% if current_user.is_manager() %}
+                    <li><a href="{{ url_for('dashboard.manager_dashboard', **({'company_id': current_company_id} if current_company_id else {})) }}">Dashboard</a></li>
+                    <li><a href="{{ url_for('dashboard.abc_view', **({'company_id': current_company_id} if current_company_id else {})) }}">Produtos (ABC)</a></li>
+                    <li><a href="{{ url_for('dashboard.status_view', **({'company_id': current_company_id} if current_company_id else {})) }}">Status</a></li>
                     <li><a href="{{ url_for('dashboard.manage_companies') }}">Empresas</a></li>
-                    <li><a href="{{ url_for('data.sales_list') }}">Vendas</a></li>
-                    <li><a href="{{ url_for('data.upload_form') }}">Importar Dados</a></li>
+                    <li><a href="{{ url_for('data.sales_list', **({'company_id': current_company_id} if current_company_id else {})) }}">Vendas</a></li>
+                    <li><a href="{{ url_for('data.upload_form', **({'company_id': current_company_id} if current_company_id else {})) }}">Importar Dados</a></li>
                 {% else %}
+                    <li><a href="{{ url_for('dashboard.user_dashboard') }}">Dashboard</a></li>
+                    <li><a href="{{ url_for('dashboard.abc_view') }}">Produtos (ABC)</a></li>
+                    <li><a href="{{ url_for('dashboard.status_view') }}">Status</a></li>
                     <li><a href="{{ url_for('dashboard.user_settings') }}">Configurações</a></li>
                 {% endif %}
                 <li><a href="{{ url_for('auth.logout') }}" class="nav-logout">Sair</a></li>
