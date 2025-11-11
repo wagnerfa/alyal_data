@@ -34,7 +34,7 @@ STATUS_ALIASES = {
 }
 
 
-def _apply_common_filters(query, start, end, marketplace_id, company_id: Optional[int] = None):
+def _apply_common_filters(query, start, end, marketplace_id, company_id=None):
     if start:
         query = query.filter(Sale.data_venda >= start)
     if end:

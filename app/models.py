@@ -12,7 +12,7 @@ class User(UserMixin, db.Model):
     logo_filename = db.Column(db.String(255))
     manager_notes = db.relationship(
         'ManagerNote',
-        backref=db.backref('author', lazy=True),
+        backref='author',
         lazy=True,
         foreign_keys='ManagerNote.author_id',
     )
@@ -47,14 +47,14 @@ class Marketplace(db.Model):
 class Sale(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     marketplace_id = db.Column(db.Integer, db.ForeignKey('marketplace.id'), nullable=False, index=True)
-    company_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True, nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)
     nome_produto = db.Column(db.String(255), nullable=False)
     sku = db.Column(db.String(120), nullable=False, index=True)
     status_pedido = db.Column(db.String(50), nullable=False, index=True)
     data_venda = db.Column(db.Date, nullable=False, index=True, default=date.today)
     valor_total_venda = db.Column(db.Numeric(12, 2), nullable=False)
 
-    company = db.relationship('User', backref='sales')
+    company = db.relationship('User', foreign_keys=[company_id], backref=db.backref('sales', lazy=True))
 
     def __repr__(self):
         return f'<Sale {self.sku} {self.valor_total_venda}>'
@@ -66,8 +66,7 @@ class ManagerNote(db.Model):
     periodo_fim = db.Column(db.Date, nullable=False)
     conteudo = db.Column(db.Text, nullable=False)
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    company_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
-    company = db.relationship('User', foreign_keys=[company_id], lazy=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)
 
     def __repr__(self):
         return (

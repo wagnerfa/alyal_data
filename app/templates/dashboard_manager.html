@@ -43,7 +43,7 @@
     <div class="dashboard-grid">
         <div class="dashboard-card">
             <h3>Curva ABC rápida</h3>
-            <p class="card-description">Top SKUs por faturamento no período selecionado. Consulte a visão completa em <a href="{{ url_for('dashboard.abc_view', start_date=start_date.isoformat(), end_date=end_date.isoformat(), marketplace_id=selected_marketplace, company_id=selected_company) }}">Produtos (ABC)</a>.</p>
+            <p class="card-description">Top SKUs por faturamento no período selecionado. Consulte a visão completa em <a href="{{ url_for('dashboard.abc_view', start_date=start_date.isoformat(), end_date=end_date.isoformat(), marketplace_id=selected_marketplace if selected_marketplace else None, company_id=selected_company if selected_company else None) }}">Produtos (ABC)</a>.</p>
             <ul class="abc-preview">
                 {% for item in abc_data %}
                     <li>
@@ -72,19 +72,6 @@
                 {% if selected_company %}
                     <input type="hidden" name="company_id" value="{{ selected_company }}">
                 {% endif %}
-                <div class="form-group">
-                    <label for="noteCompany">Empresa</label>
-                    {% if companies %}
-                        <select id="noteCompany" name="company_id" required>
-                            <option value="">Selecione a empresa</option>
-                            {% for company in companies %}
-                                <option value="{{ company.id }}" {% if selected_company == company.id %}selected{% endif %}>{{ company.username }}</option>
-                            {% endfor %}
-                        </select>
-                    {% else %}
-                        <p class="form-helper">Cadastre uma empresa para registrar comentários.</p>
-                    {% endif %}
-                </div>
                 <div class="form-group">
                     <label for="managerNote">Comentário</label>
                     <textarea id="managerNote" name="manager_note" rows="6" placeholder="Compartilhe orientações para o período" {% if not companies %}disabled{% endif %}>{{ manager_note.conteudo if manager_note else '' }}</textarea>

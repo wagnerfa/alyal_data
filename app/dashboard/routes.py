@@ -42,15 +42,7 @@ def _get_filters_from_request(include_company: bool = False):
     start_raw = source.get('start_date')
     end_raw = source.get('end_date')
     marketplace_id = source.get('marketplace_id', type=int)
-    company_id = None
-    if include_company:
-        company_raw = source.get('company_id')
-        try:
-            company_id = int(company_raw)
-        except (TypeError, ValueError):
-            company_id = None
-        if company_id and company_id <= 0:
-            company_id = None
+    company_id = source.get('company_id', type=int)
 
     end_date = _parse_date(end_raw) or date.today()
     start_date = _parse_date(start_raw) or (end_date - timedelta(days=30))
@@ -59,6 +51,7 @@ def _get_filters_from_request(include_company: bool = False):
         start_date, end_date = end_date, start_date
 
     marketplace_id = marketplace_id if marketplace_id and marketplace_id > 0 else None
+    company_id = company_id if company_id and company_id > 0 else None
     return start_date, end_date, marketplace_id, company_id
 
 
@@ -293,13 +286,9 @@ def manager_dashboard():
     if not current_user.is_manager():
         return _redirect_to_role_dashboard()
 
-    start_date, end_date, marketplace_id, company_id = _get_filters_from_request(include_company=True)
+    start_date, end_date, marketplace_id, company_id = _get_filters_from_request()
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
-    companies = (
-        User.query.filter_by(role='user')
-        .order_by(User.username.asc())
-        .all()
-    )
+    companies = User.query.filter_by(role='user').order_by(User.username.asc()).all()
 
     if request.method == 'POST' and 'manager_note' in request.form:
         note_content = request.form.get('manager_note', '').strip()
@@ -320,7 +309,7 @@ def manager_dashboard():
                 author_id=current_user.id,
                 periodo_inicio=start_date,
                 periodo_fim=end_date,
-                company_id=selected_company_id,
+                company_id=company_id,
             ).first()
             if note:
                 note.conteudo = note_content
@@ -330,7 +319,7 @@ def manager_dashboard():
                     periodo_fim=end_date,
                     conteudo=note_content,
                     author_id=current_user.id,
-                    company_id=selected_company_id,
+                    company_id=company_id,
                 )
                 db.session.add(note)
             db.session.commit()
@@ -338,12 +327,7 @@ def manager_dashboard():
         else:
             flash('Escreva um comentário antes de salvar.', 'error')
 
-        return redirect(
-            url_for(
-                'dashboard.manager_dashboard',
-                **_build_redirect_params(start_date, end_date, marketplace_id, company_id),
-            )
-        )
+        return redirect(url_for('dashboard.manager_dashboard', **_build_redirect_params(start_date, end_date, marketplace_id, company_id)))
 
     kpis = get_kpis(db.session, start_date, end_date, marketplace_id, company_id)
     timeseries = sales_timeseries(db.session, start_date, end_date, marketplace_id, company_id)
@@ -363,14 +347,12 @@ def manager_dashboard():
     previous_kpis = get_kpis(db.session, previous_start, previous_end, marketplace_id, company_id)
     abc_data = abc_by_revenue(db.session, start_date, end_date, marketplace_id, company_id)
 
-    manager_note = None
-    if selected_company_id:
-        manager_note = ManagerNote.query.filter_by(
-            author_id=current_user.id,
-            periodo_inicio=start_date,
-            periodo_fim=end_date,
-            company_id=selected_company_id,
-        ).first()
+    manager_note = ManagerNote.query.filter_by(
+        author_id=current_user.id,
+        periodo_inicio=start_date,
+        periodo_fim=end_date,
+        company_id=company_id,
+    ).first()
 
     insights = _generate_insights(kpis, previous_kpis, abc_data)
 
@@ -400,6 +382,7 @@ def user_dashboard():
         return _redirect_to_role_dashboard()
 
     start_date, end_date, marketplace_id, _ = _get_filters_from_request()
+    company_id = current_user.id
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
     company_id = current_user.id
 
@@ -432,7 +415,7 @@ def user_dashboard():
 
     manager_note = (
         ManagerNote.query
-        .filter_by(periodo_inicio=start_date, periodo_fim=end_date, company_id=current_user.id)
+        .filter_by(periodo_inicio=start_date, periodo_fim=end_date, company_id=company_id)
         .order_by(ManagerNote.id.desc())
         .first()
     )
@@ -507,8 +490,12 @@ def user_settings():
 @dashboard_bp.route('/abc')
 @login_required
 def abc_view():
-    include_company = current_user.is_manager()
-    start_date, end_date, marketplace_id, company_id = _get_filters_from_request(include_company)
+    start_date, end_date, marketplace_id, company_id = _get_filters_from_request()
+    companies = []
+    if current_user.is_manager():
+        companies = User.query.filter_by(role='user').order_by(User.username.asc()).all()
+    else:
+        company_id = current_user.id
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
     companies = []
     if include_company:
@@ -553,8 +540,12 @@ def abc_view():
 @dashboard_bp.route('/status')
 @login_required
 def status_view():
-    include_company = current_user.is_manager()
-    start_date, end_date, marketplace_id, company_id = _get_filters_from_request(include_company)
+    start_date, end_date, marketplace_id, company_id = _get_filters_from_request()
+    companies = []
+    if current_user.is_manager():
+        companies = User.query.filter_by(role='user').order_by(User.username.asc()).all()
+    else:
+        company_id = current_user.id
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
     companies = []
     if include_company:

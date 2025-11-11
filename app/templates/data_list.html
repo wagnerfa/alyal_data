@@ -11,6 +11,7 @@
     {% set action = url_for('data.sales_list') %}
     {% set start_date = start_date|default('', true) %}
     {% set end_date = end_date|default('', true) %}
+    {% set selected_company = selected_company|default('', true) %}
     {% include '_partials/_filters.html' %}
 
     <div class="dashboard-card">
