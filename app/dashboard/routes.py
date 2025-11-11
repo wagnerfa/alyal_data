@@ -37,7 +37,7 @@ def _parse_date(value):
         return None
 
 
-def _get_filters_from_request(include_company: bool = False):
+def _get_filters_from_request():
     source = request.values if request.method == 'POST' else request.args
     start_raw = source.get('start_date')
     end_raw = source.get('end_date')
@@ -289,6 +289,10 @@ def manager_dashboard():
     start_date, end_date, marketplace_id, company_id = _get_filters_from_request()
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
     companies = User.query.filter_by(role='user').order_by(User.username.asc()).all()
+    company_ids = [company.id for company in companies]
+
+    if company_id not in company_ids and company_ids:
+        company_id = company_ids[0]
 
     if request.method == 'POST' and 'manager_note' in request.form:
         note_content = request.form.get('manager_note', '').strip()
@@ -298,11 +302,11 @@ def manager_dashboard():
             return redirect(
                 url_for(
                     'dashboard.manager_dashboard',
-                    **_build_redirect_params(start_date, end_date, marketplace_id, selected_company_id),
+                    **_build_redirect_params(start_date, end_date, marketplace_id, company_id),
                 )
             )
 
-        selected_company_id = company_id_form
+        company_id = company_id_form
 
         if note_content:
             note = ManagerNote.query.filter_by(
@@ -327,7 +331,12 @@ def manager_dashboard():
         else:
             flash('Escreva um comentário antes de salvar.', 'error')
 
-        return redirect(url_for('dashboard.manager_dashboard', **_build_redirect_params(start_date, end_date, marketplace_id, company_id)))
+        return redirect(
+            url_for(
+                'dashboard.manager_dashboard',
+                **_build_redirect_params(start_date, end_date, marketplace_id, company_id),
+            )
+        )
 
     kpis = get_kpis(db.session, start_date, end_date, marketplace_id, company_id)
     timeseries = sales_timeseries(db.session, start_date, end_date, marketplace_id, company_id)
@@ -491,21 +500,20 @@ def user_settings():
 @login_required
 def abc_view():
     start_date, end_date, marketplace_id, company_id = _get_filters_from_request()
-    companies = []
-    if current_user.is_manager():
-        companies = User.query.filter_by(role='user').order_by(User.username.asc()).all()
-    else:
-        company_id = current_user.id
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
-    companies = []
-    if include_company:
+
+    if current_user.is_manager():
         companies = (
             User.query.filter_by(role='user')
             .order_by(User.username.asc())
             .all()
         )
+        company_ids = [company.id for company in companies]
+        if company_id not in company_ids and company_ids:
+            company_id = company_ids[0]
     else:
         company_id = current_user.id
+        companies = []
 
     abc_data = abc_by_revenue(db.session, start_date, end_date, marketplace_id, company_id)
     if not abc_data:
@@ -541,21 +549,20 @@ def abc_view():
 @login_required
 def status_view():
     start_date, end_date, marketplace_id, company_id = _get_filters_from_request()
-    companies = []
-    if current_user.is_manager():
-        companies = User.query.filter_by(role='user').order_by(User.username.asc()).all()
-    else:
-        company_id = current_user.id
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
-    companies = []
-    if include_company:
+
+    if current_user.is_manager():
         companies = (
             User.query.filter_by(role='user')
             .order_by(User.username.asc())
             .all()
         )
+        company_ids = [company.id for company in companies]
+        if company_id not in company_ids and company_ids:
+            company_id = company_ids[0]
     else:
         company_id = current_user.id
+        companies = []
 
     breakdown = status_breakdown(db.session, start_date, end_date, marketplace_id, company_id)
     total_current = sum(breakdown['values'])
