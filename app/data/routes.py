@@ -12,7 +12,7 @@ from sqlalchemy.orm import joinedload
 
 from app import db
 from app.data import data_bp
-from app.models import Marketplace, Sale
+from app.models import Marketplace, Sale, User
 
 
 MAX_UPLOAD_SIZE = 2 * 1024 * 1024  # 2MB
@@ -177,7 +177,12 @@ def upload_form():
         return redirect_response
 
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
-    return render_template("data_upload.html", marketplaces=marketplaces)
+    companies = (
+        User.query.filter_by(role='user')
+        .order_by(User.username.asc())
+        .all()
+    )
+    return render_template("data_upload.html", marketplaces=marketplaces, companies=companies)
 
 
 @data_bp.route("/upload", methods=["POST"])
@@ -188,14 +193,29 @@ def upload_submit():
         return redirect_response
 
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
+    companies = (
+        User.query.filter_by(role='user')
+        .order_by(User.username.asc())
+        .all()
+    )
     marketplace_id = request.form.get("marketplace_id")
+    company_id_raw = request.form.get("company_id")
+    try:
+        company_id_int = int(company_id_raw)
+    except (TypeError, ValueError):
+        company_id_int = None
     file = request.files.get("file")
 
     try:
         marketplace_id_int = int(marketplace_id)
     except (TypeError, ValueError):
         flash("Selecione um marketplace válido.", "error")
-        return render_template("data_upload.html", marketplaces=marketplaces)
+        return render_template(
+            "data_upload.html",
+            marketplaces=marketplaces,
+            companies=companies,
+            selected_company=company_id_int,
+        )
 
     marketplace = db.session.get(Marketplace, marketplace_id_int)
     if not marketplace:
@@ -204,27 +224,74 @@ def upload_submit():
             "data_upload.html",
             marketplaces=marketplaces,
             selected_marketplace=marketplace_id_int,
+            companies=companies,
+            selected_company=company_id_int,
+        )
+
+    if not company_id_int or company_id_int <= 0:
+        flash("Selecione uma empresa válida.", "error")
+        return render_template(
+            "data_upload.html",
+            marketplaces=marketplaces,
+            selected_marketplace=marketplace.id,
+            companies=companies,
+            selected_company=company_id_int,
+        )
+
+    company = User.query.filter_by(id=company_id_int, role='user').first()
+    if not company:
+        flash("Empresa selecionada não encontrada.", "error")
+        return render_template(
+            "data_upload.html",
+            marketplaces=marketplaces,
+            selected_marketplace=marketplace.id,
+            companies=companies,
+            selected_company=company_id_int,
         )
 
     if not file or file.filename == "":
         flash("Envie um arquivo CSV válido.", "error")
-        return render_template("data_upload.html", marketplaces=marketplaces, selected_marketplace=marketplace.id)
+        return render_template(
+            "data_upload.html",
+            marketplaces=marketplaces,
+            selected_marketplace=marketplace.id,
+            companies=companies,
+            selected_company=company_id_int,
+        )
 
     if not file.filename.lower().endswith(".csv"):
         flash("O arquivo deve estar no formato .csv.", "error")
-        return render_template("data_upload.html", marketplaces=marketplaces, selected_marketplace=marketplace.id)
+        return render_template(
+            "data_upload.html",
+            marketplaces=marketplaces,
+            selected_marketplace=marketplace.id,
+            companies=companies,
+            selected_company=company_id_int,
+        )
 
     file.stream.seek(0, io.SEEK_END)
     size = file.stream.tell()
     file.stream.seek(0)
     if size > MAX_UPLOAD_SIZE:
         flash("O arquivo excede o tamanho máximo permitido de 2MB.", "error")
-        return render_template("data_upload.html", marketplaces=marketplaces, selected_marketplace=marketplace.id)
+        return render_template(
+            "data_upload.html",
+            marketplaces=marketplaces,
+            selected_marketplace=marketplace.id,
+            companies=companies,
+            selected_company=company_id_int,
+        )
 
     raw_bytes = file.read()
     if not raw_bytes:
         flash("O arquivo enviado está vazio.", "error")
-        return render_template("data_upload.html", marketplaces=marketplaces, selected_marketplace=marketplace.id)
+        return render_template(
+            "data_upload.html",
+            marketplaces=marketplaces,
+            selected_marketplace=marketplace.id,
+            companies=companies,
+            selected_company=company_id_int,
+        )
 
     buffer = io.BytesIO(raw_bytes)
     text_stream = io.TextIOWrapper(buffer, encoding="utf-8-sig", newline="")
@@ -235,7 +302,13 @@ def upload_submit():
 
     if not reader.fieldnames:
         flash("Não foi possível identificar o cabeçalho do CSV.", "error")
-        return render_template("data_upload.html", marketplaces=marketplaces, selected_marketplace=marketplace.id)
+        return render_template(
+            "data_upload.html",
+            marketplaces=marketplaces,
+            selected_marketplace=marketplace.id,
+            companies=companies,
+            selected_company=company_id_int,
+        )
 
     header_map: Dict[str, str] = {}
     for original_header in reader.fieldnames:
@@ -248,7 +321,13 @@ def upload_submit():
     if missing_columns:
         missing_str = ", ".join(missing_columns)
         flash(f"CSV inválido. Colunas ausentes: {missing_str}.", "error")
-        return render_template("data_upload.html", marketplaces=marketplaces, selected_marketplace=marketplace.id)
+        return render_template(
+            "data_upload.html",
+            marketplaces=marketplaces,
+            selected_marketplace=marketplace.id,
+            companies=companies,
+            selected_company=company_id_int,
+        )
 
     sales_to_insert = []
     errors = []
@@ -275,6 +354,7 @@ def upload_submit():
 
             sale = Sale(
                 marketplace_id=marketplace.id,
+                company_id=company.id,
                 nome_produto=nome_produto,
                 sku=sku,
                 status_pedido=status,
@@ -315,12 +395,21 @@ def sales_list():
         return redirect_response
 
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
+    companies = (
+        User.query.filter_by(role='user')
+        .order_by(User.username.asc())
+        .all()
+    )
     page = request.args.get("page", default=1, type=int)
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
     marketplace_id = request.args.get("marketplace_id", type=int)
+    company_id = request.args.get("company_id", type=int)
 
-    query = Sale.query.options(joinedload(Sale.marketplace)).order_by(Sale.data_venda.desc(), Sale.id.desc())
+    query = (
+        Sale.query.options(joinedload(Sale.marketplace), joinedload(Sale.company))
+        .order_by(Sale.data_venda.desc(), Sale.id.desc())
+    )
 
     try:
         if start_date:
@@ -333,15 +422,19 @@ def sales_list():
 
     if marketplace_id:
         query = query.filter(Sale.marketplace_id == marketplace_id)
+    if company_id:
+        query = query.filter(Sale.company_id == company_id)
 
     pagination = query.paginate(page=page, per_page=25, error_out=False)
 
     return render_template(
         "data_list.html",
         marketplaces=marketplaces,
+        companies=companies,
         sales=pagination.items,
         pagination=pagination,
         selected_marketplace=marketplace_id,
+        selected_company=company_id,
         start_date=start_date,
         end_date=end_date,
     )

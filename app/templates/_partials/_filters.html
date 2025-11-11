@@ -1,5 +1,7 @@
 <div class="dashboard-card filters-card">
     {% set form_action = action if action is defined else request.path %}
+    {% set companies = companies|default([]) %}
+    {% set selected_company = selected_company|default(None, true) %}
     <form method="get" action="{{ form_action }}" class="filters-form">
         <div class="filters-grid">
             {% set start_value = '' %}
@@ -33,6 +35,17 @@
                     <option value="">Todos os marketplaces</option>
                     {% for marketplace in marketplaces %}
                         <option value="{{ marketplace.id }}" {% if selected_marketplace == marketplace.id %}selected{% endif %}>{{ marketplace.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            {% if companies %}
+            <div class="form-group">
+                <label for="company_id">Empresa</label>
+                <select id="company_id" name="company_id">
+                    <option value="">Todas as empresas</option>
+                    {% for company in companies %}
+                        <option value="{{ company.id }}" {% if selected_company == company.id %}selected{% endif %}>{{ company.username }}</option>
                     {% endfor %}
                 </select>
             </div>
