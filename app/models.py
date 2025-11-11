@@ -47,11 +47,14 @@ class Marketplace(db.Model):
 class Sale(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     marketplace_id = db.Column(db.Integer, db.ForeignKey('marketplace.id'), nullable=False, index=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True, nullable=False)
     nome_produto = db.Column(db.String(255), nullable=False)
     sku = db.Column(db.String(120), nullable=False, index=True)
     status_pedido = db.Column(db.String(50), nullable=False, index=True)
     data_venda = db.Column(db.Date, nullable=False, index=True, default=date.today)
     valor_total_venda = db.Column(db.Numeric(12, 2), nullable=False)
+
+    company = db.relationship('User', backref='sales')
 
     def __repr__(self):
         return f'<Sale {self.sku} {self.valor_total_venda}>'
