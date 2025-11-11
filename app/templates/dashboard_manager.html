@@ -58,6 +58,11 @@
         </div>
         <div class="dashboard-card note-card">
             <h3>Comentário do Gestor</h3>
+            {% if selected_company_obj %}
+                <p class="note-meta">Empresa selecionada: <strong>{{ selected_company_obj.username }}</strong></p>
+            {% elif not companies %}
+                <p class="note-meta">Nenhuma empresa cadastrada. Cadastre empresas para registrar comentários.</p>
+            {% endif %}
             <form method="post">
                 <input type="hidden" name="start_date" value="{{ start_date.isoformat() }}">
                 <input type="hidden" name="end_date" value="{{ end_date.isoformat() }}">
@@ -65,10 +70,23 @@
                     <input type="hidden" name="marketplace_id" value="{{ selected_marketplace }}">
                 {% endif %}
                 <div class="form-group">
-                    <label for="managerNote">Comentário</label>
-                    <textarea id="managerNote" name="manager_note" rows="6" placeholder="Compartilhe orientações para o período">{{ manager_note.conteudo if manager_note else '' }}</textarea>
+                    <label for="noteCompany">Empresa</label>
+                    {% if companies %}
+                        <select id="noteCompany" name="company_id" required>
+                            <option value="">Selecione a empresa</option>
+                            {% for company in companies %}
+                                <option value="{{ company.id }}" {% if selected_company == company.id %}selected{% endif %}>{{ company.username }}</option>
+                            {% endfor %}
+                        </select>
+                    {% else %}
+                        <p class="form-helper">Cadastre uma empresa para registrar comentários.</p>
+                    {% endif %}
                 </div>
-                <button type="submit" class="btn btn-primary">Salvar comentário</button>
+                <div class="form-group">
+                    <label for="managerNote">Comentário</label>
+                    <textarea id="managerNote" name="manager_note" rows="6" placeholder="Compartilhe orientações para o período" {% if not companies %}disabled{% endif %}>{{ manager_note.conteudo if manager_note else '' }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" {% if not companies %}disabled{% endif %}>Salvar comentário</button>
             </form>
         </div>
     </div>

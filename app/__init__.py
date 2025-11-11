@@ -8,6 +8,8 @@ from config import Config
 from app.utils.formatting import format_currency_br, format_decimal_br
 from sqlalchemy import inspect, text
 
+from app.migrations import run_all_migrations
+
 db = SQLAlchemy()
 login_manager = LoginManager()
 
@@ -63,5 +65,7 @@ def create_app():
             if not Marketplace.query.filter_by(nome=marketplace_name).first():
                 db.session.add(Marketplace(nome=marketplace_name))
         db.session.commit()
+
+        run_all_migrations(db)
 
     return app
