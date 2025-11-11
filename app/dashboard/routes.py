@@ -323,10 +323,6 @@ def manager_dashboard():
                 start_date, end_date = min_date, max_date
                 kpis = get_kpis(db.session, start_date, end_date, marketplace_id)
                 timeseries = sales_timeseries(db.session, start_date, end_date, marketplace_id)
-                flash(
-                    f'Período sem dados. Ajustamos automaticamente para {start_date:%d/%m/%Y} – {end_date:%d/%m/%Y}.',
-                    'info',
-                )
 
     previous_start, previous_end = _get_previous_period(start_date, end_date)
     previous_kpis = get_kpis(db.session, previous_start, previous_end, marketplace_id)
@@ -379,10 +375,6 @@ def user_dashboard():
                 start_date, end_date = min_date, max_date
                 kpis = get_kpis(db.session, start_date, end_date, marketplace_id)
                 timeseries = sales_timeseries(db.session, start_date, end_date, marketplace_id)
-                flash(
-                    f'Período sem dados. Ajustamos automaticamente para {start_date:%d/%m/%Y} – {end_date:%d/%m/%Y}.',
-                    'info',
-                )
 
     status_data = status_breakdown(db.session, start_date, end_date, marketplace_id)
     status_items = [
@@ -485,10 +477,6 @@ def abc_view():
             if min_date != start_date or max_date != end_date:
                 start_date, end_date = min_date, max_date
                 abc_data = abc_by_revenue(db.session, start_date, end_date, marketplace_id)
-                flash(
-                    f'Período sem dados. Ajustamos automaticamente para {start_date:%d/%m/%Y} – {end_date:%d/%m/%Y}.',
-                    'info',
-                )
 
     chart_slice = abc_data[:10]
     chart_labels = [item['sku'] for item in chart_slice]
@@ -524,10 +512,6 @@ def status_view():
             if min_date != start_date or max_date != end_date:
                 start_date, end_date = min_date, max_date
                 breakdown = status_breakdown(db.session, start_date, end_date, marketplace_id)
-                flash(
-                    f'Período sem dados. Ajustamos automaticamente para {start_date:%d/%m/%Y} – {end_date:%d/%m/%Y}.',
-                    'info',
-                )
             total_current = sum(breakdown['values'])
     previous_start, previous_end = _get_previous_period(start_date, end_date)
     previous_breakdown = status_breakdown(db.session, previous_start, previous_end, marketplace_id)
