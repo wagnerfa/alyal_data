@@ -303,11 +303,24 @@ def manager_dashboard():
 
     if request.method == 'POST' and 'manager_note' in request.form:
         note_content = request.form.get('manager_note', '').strip()
+        company_id_form = request.form.get('company_id', type=int)
+        if company_id_form not in company_ids:
+            flash('Selecione uma empresa válida antes de salvar.', 'error')
+            return redirect(
+                url_for(
+                    'dashboard.manager_dashboard',
+                    **_build_redirect_params(start_date, end_date, marketplace_id, selected_company_id),
+                )
+            )
+
+        selected_company_id = company_id_form
+
         if note_content:
             note = ManagerNote.query.filter_by(
                 author_id=current_user.id,
                 periodo_inicio=start_date,
                 periodo_fim=end_date,
+                company_id=selected_company_id,
             ).first()
             if note:
                 note.conteudo = note_content
@@ -317,6 +330,7 @@ def manager_dashboard():
                     periodo_fim=end_date,
                     conteudo=note_content,
                     author_id=current_user.id,
+                    company_id=selected_company_id,
                 )
                 db.session.add(note)
             db.session.commit()
@@ -349,11 +363,14 @@ def manager_dashboard():
     previous_kpis = get_kpis(db.session, previous_start, previous_end, marketplace_id, company_id)
     abc_data = abc_by_revenue(db.session, start_date, end_date, marketplace_id, company_id)
 
-    manager_note = ManagerNote.query.filter_by(
-        author_id=current_user.id,
-        periodo_inicio=start_date,
-        periodo_fim=end_date,
-    ).first()
+    manager_note = None
+    if selected_company_id:
+        manager_note = ManagerNote.query.filter_by(
+            author_id=current_user.id,
+            periodo_inicio=start_date,
+            periodo_fim=end_date,
+            company_id=selected_company_id,
+        ).first()
 
     insights = _generate_insights(kpis, previous_kpis, abc_data)
 
@@ -415,7 +432,7 @@ def user_dashboard():
 
     manager_note = (
         ManagerNote.query
-        .filter_by(periodo_inicio=start_date, periodo_fim=end_date)
+        .filter_by(periodo_inicio=start_date, periodo_fim=end_date, company_id=current_user.id)
         .order_by(ManagerNote.id.desc())
         .first()
     )
