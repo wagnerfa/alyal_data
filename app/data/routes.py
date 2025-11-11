@@ -416,7 +416,10 @@ def sales_list():
     marketplace_id = request.args.get("marketplace_id", type=int)
     company_id = request.args.get("company_id", type=int)
 
-    query = Sale.query.options(joinedload(Sale.marketplace)).order_by(Sale.data_venda.desc(), Sale.id.desc())
+    query = (
+        Sale.query.options(joinedload(Sale.marketplace), joinedload(Sale.company))
+        .order_by(Sale.data_venda.desc(), Sale.id.desc())
+    )
 
     try:
         if start_date:

@@ -69,4 +69,7 @@ class ManagerNote(db.Model):
     company_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)
 
     def __repr__(self):
-        return f'<ManagerNote {self.periodo_inicio} - {self.periodo_fim}>'
+        return (
+            f'<ManagerNote {self.periodo_inicio} - {self.periodo_fim} '
+            f'company={self.company_id}>'
+        )

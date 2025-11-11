@@ -21,6 +21,7 @@
                     <tr>
                         <th>Data da venda</th>
                         <th>Marketplace</th>
+                        <th>Empresa</th>
                         <th>SKU</th>
                         <th>Produto</th>
                         <th>Status</th>
@@ -32,6 +33,7 @@
                         <tr>
                             <td data-label="Data">{{ sale.data_venda.strftime('%d/%m/%Y') }}</td>
                             <td data-label="Marketplace">{{ sale.marketplace.nome }}</td>
+                            <td data-label="Empresa">{{ sale.company.username if sale.company else '—' }}</td>
                             <td data-label="SKU">{{ sale.sku }}</td>
                             <td data-label="Produto">{{ sale.nome_produto }}</td>
                             <td data-label="Status">{{ sale.status_pedido.replace('_', ' ')|title }}</td>

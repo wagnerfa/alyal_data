@@ -1,5 +1,7 @@
 <div class="dashboard-card filters-card">
     {% set form_action = action if action is defined else request.path %}
+    {% set companies = companies|default([]) %}
+    {% set selected_company = selected_company|default(None, true) %}
     <form method="get" action="{{ form_action }}" class="filters-form">
         <div class="filters-grid">
             {% set start_value = '' %}

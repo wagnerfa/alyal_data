@@ -37,7 +37,7 @@ def _parse_date(value):
         return None
 
 
-def _get_filters_from_request():
+def _get_filters_from_request(include_company: bool = False):
     source = request.values if request.method == 'POST' else request.args
     start_raw = source.get('start_date')
     end_raw = source.get('end_date')
@@ -292,6 +292,18 @@ def manager_dashboard():
 
     if request.method == 'POST' and 'manager_note' in request.form:
         note_content = request.form.get('manager_note', '').strip()
+        company_id_form = request.form.get('company_id', type=int)
+        if company_id_form not in company_ids:
+            flash('Selecione uma empresa válida antes de salvar.', 'error')
+            return redirect(
+                url_for(
+                    'dashboard.manager_dashboard',
+                    **_build_redirect_params(start_date, end_date, marketplace_id, selected_company_id),
+                )
+            )
+
+        selected_company_id = company_id_form
+
         if note_content:
             note = ManagerNote.query.filter_by(
                 author_id=current_user.id,
@@ -372,6 +384,7 @@ def user_dashboard():
     start_date, end_date, marketplace_id, _ = _get_filters_from_request()
     company_id = current_user.id
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
+    company_id = current_user.id
 
     kpis = get_kpis(db.session, start_date, end_date, marketplace_id, company_id)
     timeseries = sales_timeseries(db.session, start_date, end_date, marketplace_id, company_id)
@@ -419,6 +432,7 @@ def user_dashboard():
         start_date=start_date,
         end_date=end_date,
         selected_marketplace=marketplace_id,
+        selected_company=company_id,
         kpis=kpis,
         timeseries_labels=timeseries['labels'],
         timeseries_values=timeseries['values'],
@@ -483,6 +497,15 @@ def abc_view():
     else:
         company_id = current_user.id
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
+    companies = []
+    if include_company:
+        companies = (
+            User.query.filter_by(role='user')
+            .order_by(User.username.asc())
+            .all()
+        )
+    else:
+        company_id = current_user.id
 
     abc_data = abc_by_revenue(db.session, start_date, end_date, marketplace_id, company_id)
     if not abc_data:
@@ -524,6 +547,15 @@ def status_view():
     else:
         company_id = current_user.id
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
+    companies = []
+    if include_company:
+        companies = (
+            User.query.filter_by(role='user')
+            .order_by(User.username.asc())
+            .all()
+        )
+    else:
+        company_id = current_user.id
 
     breakdown = status_breakdown(db.session, start_date, end_date, marketplace_id, company_id)
     total_current = sum(breakdown['values'])
