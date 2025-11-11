@@ -1,5 +1,17 @@
 // Animações e interatividade
 
+// Função para obter cores do tema
+function getChartColors() {
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+    return {
+        textColor: isDark ? '#ffffff' : '#1f2336',
+        gridColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(31, 35, 54, 0.1)',
+    };
+}
+
+// Variável global para armazenar instâncias dos gráficos
+window.chartInstances = window.chartInstances || [];
+
 document.addEventListener('DOMContentLoaded', function() {
 
     // Tema claro/escuro
@@ -17,6 +29,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (themeIcon) {
             themeIcon.textContent = normalizedTheme === 'dark' ? '🌙' : '🌞';
         }
+
+        // Atualizar cores dos gráficos quando o tema mudar
+        updateChartsTheme();
     };
 
     const storedTheme = localStorage.getItem('preferredTheme');
@@ -157,7 +172,7 @@ style.textContent = `
         position: relative;
         overflow: hidden;
     }
-    
+
     .ripple {
         position: absolute;
         border-radius: 50%;
@@ -166,7 +181,7 @@ style.textContent = `
         animation: rippleEffect 0.6s ease-out;
         pointer-events: none;
     }
-    
+
     @keyframes rippleEffect {
         to {
             transform: scale(4);
@@ -175,3 +190,34 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Função para atualizar cores dos gráficos
+function updateChartsTheme() {
+    if (!window.chartInstances || window.chartInstances.length === 0) return;
+
+    const colors = getChartColors();
+
+    window.chartInstances.forEach(chart => {
+        if (chart && chart.options) {
+            // Atualizar cor dos textos dos eixos
+            if (chart.options.scales) {
+                Object.keys(chart.options.scales).forEach(scaleKey => {
+                    const scale = chart.options.scales[scaleKey];
+                    if (scale.ticks) {
+                        scale.ticks.color = colors.textColor;
+                    }
+                    if (scale.grid) {
+                        scale.grid.color = colors.gridColor;
+                    }
+                });
+            }
+
+            // Atualizar legenda
+            if (chart.options.plugins && chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+                chart.options.plugins.legend.labels.color = colors.textColor;
+            }
+
+            chart.update();
+        }
+    });
+}

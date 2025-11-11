@@ -77,7 +77,8 @@
 <script>
     const abcCtx = document.getElementById('abcChart');
     if (abcCtx) {
-        new Chart(abcCtx, {
+        const colors = getChartColors();
+        const abcChart = new Chart(abcCtx, {
             type: 'bar',
             data: {
                 labels: {{ chart_labels|tojson }},
@@ -112,7 +113,11 @@
                         beginAtZero: true,
                         position: 'left',
                         ticks: {
+                            color: colors.textColor,
                             callback: (value) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                        },
+                        grid: {
+                            color: colors.gridColor
                         }
                     },
                     y1: {
@@ -120,13 +125,16 @@
                         position: 'right',
                         grid: { drawOnChartArea: false },
                         ticks: {
+                            color: colors.textColor,
                             callback: (value) => `${value.toFixed(0)}%`
                         },
                         suggestedMax: 100
                     }
                 },
                 plugins: {
-                    legend: { display: false },
+                    legend: {
+                        display: false
+                    },
                     tooltip: {
                         mode: 'index',
                         intersect: false
@@ -134,6 +142,7 @@
                 }
             }
         });
+        window.chartInstances.push(abcChart);
     }
 
     // Paginação e pesquisa da tabela
