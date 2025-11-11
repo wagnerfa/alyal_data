@@ -37,11 +37,20 @@ def _parse_date(value):
         return None
 
 
-def _get_filters_from_request():
+def _get_filters_from_request(include_company: bool = False):
     source = request.values if request.method == 'POST' else request.args
     start_raw = source.get('start_date')
     end_raw = source.get('end_date')
     marketplace_id = source.get('marketplace_id', type=int)
+    company_id = None
+    if include_company:
+        company_raw = source.get('company_id')
+        try:
+            company_id = int(company_raw)
+        except (TypeError, ValueError):
+            company_id = None
+        if company_id and company_id <= 0:
+            company_id = None
 
     end_date = _parse_date(end_raw) or date.today()
     start_date = _parse_date(start_raw) or (end_date - timedelta(days=30))
@@ -50,7 +59,7 @@ def _get_filters_from_request():
         start_date, end_date = end_date, start_date
 
     marketplace_id = marketplace_id if marketplace_id and marketplace_id > 0 else None
-    return start_date, end_date, marketplace_id
+    return start_date, end_date, marketplace_id, company_id
 
 
 def _get_previous_period(start_date, end_date):
@@ -60,13 +69,15 @@ def _get_previous_period(start_date, end_date):
     return previous_start, previous_end
 
 
-def _build_redirect_params(start_date, end_date, marketplace_id):
+def _build_redirect_params(start_date, end_date, marketplace_id, company_id=None):
     params = {
         'start_date': start_date.isoformat(),
         'end_date': end_date.isoformat(),
     }
     if marketplace_id:
         params['marketplace_id'] = marketplace_id
+    if company_id:
+        params['company_id'] = company_id
     return params
 
 
@@ -282,8 +293,13 @@ def manager_dashboard():
     if not current_user.is_manager():
         return _redirect_to_role_dashboard()
 
-    start_date, end_date, marketplace_id = _get_filters_from_request()
+    start_date, end_date, marketplace_id, company_id = _get_filters_from_request(include_company=True)
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
+    companies = (
+        User.query.filter_by(role='user')
+        .order_by(User.username.asc())
+        .all()
+    )
 
     if request.method == 'POST' and 'manager_note' in request.form:
         note_content = request.form.get('manager_note', '').strip()
@@ -308,25 +324,30 @@ def manager_dashboard():
         else:
             flash('Escreva um comentário antes de salvar.', 'error')
 
-        return redirect(url_for('dashboard.manager_dashboard', **_build_redirect_params(start_date, end_date, marketplace_id)))
+        return redirect(
+            url_for(
+                'dashboard.manager_dashboard',
+                **_build_redirect_params(start_date, end_date, marketplace_id, company_id),
+            )
+        )
 
-    kpis = get_kpis(db.session, start_date, end_date, marketplace_id)
-    timeseries = sales_timeseries(db.session, start_date, end_date, marketplace_id)
+    kpis = get_kpis(db.session, start_date, end_date, marketplace_id, company_id)
+    timeseries = sales_timeseries(db.session, start_date, end_date, marketplace_id, company_id)
 
     no_data = (not timeseries['values']) and kpis['faturamento'] == 0.0 and kpis['pedidos_totais'] == 0.0
     if no_data:
-        min_date, max_date = get_data_boundaries(db.session, marketplace_id)
+        min_date, max_date = get_data_boundaries(db.session, marketplace_id, company_id)
         if min_date and max_date:
             if min_date > max_date:
                 min_date, max_date = max_date, min_date
             if min_date != start_date or max_date != end_date:
                 start_date, end_date = min_date, max_date
-                kpis = get_kpis(db.session, start_date, end_date, marketplace_id)
-                timeseries = sales_timeseries(db.session, start_date, end_date, marketplace_id)
+                kpis = get_kpis(db.session, start_date, end_date, marketplace_id, company_id)
+                timeseries = sales_timeseries(db.session, start_date, end_date, marketplace_id, company_id)
 
     previous_start, previous_end = _get_previous_period(start_date, end_date)
-    previous_kpis = get_kpis(db.session, previous_start, previous_end, marketplace_id)
-    abc_data = abc_by_revenue(db.session, start_date, end_date, marketplace_id)
+    previous_kpis = get_kpis(db.session, previous_start, previous_end, marketplace_id, company_id)
+    abc_data = abc_by_revenue(db.session, start_date, end_date, marketplace_id, company_id)
 
     manager_note = ManagerNote.query.filter_by(
         author_id=current_user.id,
@@ -340,9 +361,11 @@ def manager_dashboard():
         'dashboard_manager.html',
         user=current_user,
         marketplaces=marketplaces,
+        companies=companies,
         start_date=start_date,
         end_date=end_date,
         selected_marketplace=marketplace_id,
+        selected_company=company_id,
         kpis=kpis,
         previous_period=(previous_start, previous_end),
         timeseries_labels=timeseries['labels'],
@@ -359,24 +382,25 @@ def user_dashboard():
     if current_user.is_manager():
         return _redirect_to_role_dashboard()
 
-    start_date, end_date, marketplace_id = _get_filters_from_request()
+    start_date, end_date, marketplace_id, _ = _get_filters_from_request()
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
+    company_id = current_user.id
 
-    kpis = get_kpis(db.session, start_date, end_date, marketplace_id)
-    timeseries = sales_timeseries(db.session, start_date, end_date, marketplace_id)
+    kpis = get_kpis(db.session, start_date, end_date, marketplace_id, company_id)
+    timeseries = sales_timeseries(db.session, start_date, end_date, marketplace_id, company_id)
 
     no_data = (not timeseries['values']) and kpis['faturamento'] == 0.0 and kpis['pedidos_totais'] == 0.0
     if no_data:
-        min_date, max_date = get_data_boundaries(db.session, marketplace_id)
+        min_date, max_date = get_data_boundaries(db.session, marketplace_id, company_id)
         if min_date and max_date:
             if min_date > max_date:
                 min_date, max_date = max_date, min_date
             if min_date != start_date or max_date != end_date:
                 start_date, end_date = min_date, max_date
-                kpis = get_kpis(db.session, start_date, end_date, marketplace_id)
-                timeseries = sales_timeseries(db.session, start_date, end_date, marketplace_id)
+                kpis = get_kpis(db.session, start_date, end_date, marketplace_id, company_id)
+                timeseries = sales_timeseries(db.session, start_date, end_date, marketplace_id, company_id)
 
-    status_data = status_breakdown(db.session, start_date, end_date, marketplace_id)
+    status_data = status_breakdown(db.session, start_date, end_date, marketplace_id, company_id)
     status_items = [
         {
             'label': label.replace('_', ' ').title(),
@@ -385,9 +409,9 @@ def user_dashboard():
         for label, value in zip(status_data['labels'], status_data['values'])
     ]
 
-    top_products = top_products_by_revenue(db.session, start_date, end_date, marketplace_id)
-    monthly_sales = monthly_sales_counts(db.session, start_date, end_date, marketplace_id)
-    monthly_revenue = monthly_revenue_totals(db.session, start_date, end_date, marketplace_id)
+    top_products = top_products_by_revenue(db.session, start_date, end_date, marketplace_id, company_id)
+    monthly_sales = monthly_sales_counts(db.session, start_date, end_date, marketplace_id, company_id)
+    monthly_revenue = monthly_revenue_totals(db.session, start_date, end_date, marketplace_id, company_id)
 
     manager_note = (
         ManagerNote.query
@@ -397,8 +421,8 @@ def user_dashboard():
     )
 
     previous_start, previous_end = _get_previous_period(start_date, end_date)
-    previous_kpis = get_kpis(db.session, previous_start, previous_end, marketplace_id)
-    abc_data = abc_by_revenue(db.session, start_date, end_date, marketplace_id)
+    previous_kpis = get_kpis(db.session, previous_start, previous_end, marketplace_id, company_id)
+    abc_data = abc_by_revenue(db.session, start_date, end_date, marketplace_id, company_id)
     insights = _generate_insights(kpis, previous_kpis, abc_data)
 
     return render_template(
@@ -408,6 +432,7 @@ def user_dashboard():
         start_date=start_date,
         end_date=end_date,
         selected_marketplace=marketplace_id,
+        selected_company=company_id,
         kpis=kpis,
         timeseries_labels=timeseries['labels'],
         timeseries_values=timeseries['values'],
@@ -465,18 +490,28 @@ def user_settings():
 @dashboard_bp.route('/abc')
 @login_required
 def abc_view():
-    start_date, end_date, marketplace_id = _get_filters_from_request()
+    include_company = current_user.is_manager()
+    start_date, end_date, marketplace_id, company_id = _get_filters_from_request(include_company)
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
+    companies = []
+    if include_company:
+        companies = (
+            User.query.filter_by(role='user')
+            .order_by(User.username.asc())
+            .all()
+        )
+    else:
+        company_id = current_user.id
 
-    abc_data = abc_by_revenue(db.session, start_date, end_date, marketplace_id)
+    abc_data = abc_by_revenue(db.session, start_date, end_date, marketplace_id, company_id)
     if not abc_data:
-        min_date, max_date = get_data_boundaries(db.session, marketplace_id)
+        min_date, max_date = get_data_boundaries(db.session, marketplace_id, company_id)
         if min_date and max_date:
             if min_date > max_date:
                 min_date, max_date = max_date, min_date
             if min_date != start_date or max_date != end_date:
                 start_date, end_date = min_date, max_date
-                abc_data = abc_by_revenue(db.session, start_date, end_date, marketplace_id)
+                abc_data = abc_by_revenue(db.session, start_date, end_date, marketplace_id, company_id)
 
     chart_slice = abc_data[:10]
     chart_labels = [item['sku'] for item in chart_slice]
@@ -486,9 +521,11 @@ def abc_view():
     return render_template(
         'dashboard_abc.html',
         marketplaces=marketplaces,
+        companies=companies,
         start_date=start_date,
         end_date=end_date,
         selected_marketplace=marketplace_id,
+        selected_company=company_id,
         abc_data=abc_data,
         chart_labels=chart_labels,
         chart_revenue=chart_revenue,
@@ -499,22 +536,32 @@ def abc_view():
 @dashboard_bp.route('/status')
 @login_required
 def status_view():
-    start_date, end_date, marketplace_id = _get_filters_from_request()
+    include_company = current_user.is_manager()
+    start_date, end_date, marketplace_id, company_id = _get_filters_from_request(include_company)
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
+    companies = []
+    if include_company:
+        companies = (
+            User.query.filter_by(role='user')
+            .order_by(User.username.asc())
+            .all()
+        )
+    else:
+        company_id = current_user.id
 
-    breakdown = status_breakdown(db.session, start_date, end_date, marketplace_id)
+    breakdown = status_breakdown(db.session, start_date, end_date, marketplace_id, company_id)
     total_current = sum(breakdown['values'])
     if total_current == 0:
-        min_date, max_date = get_data_boundaries(db.session, marketplace_id)
+        min_date, max_date = get_data_boundaries(db.session, marketplace_id, company_id)
         if min_date and max_date:
             if min_date > max_date:
                 min_date, max_date = max_date, min_date
             if min_date != start_date or max_date != end_date:
                 start_date, end_date = min_date, max_date
-                breakdown = status_breakdown(db.session, start_date, end_date, marketplace_id)
+                breakdown = status_breakdown(db.session, start_date, end_date, marketplace_id, company_id)
             total_current = sum(breakdown['values'])
     previous_start, previous_end = _get_previous_period(start_date, end_date)
-    previous_breakdown = status_breakdown(db.session, previous_start, previous_end, marketplace_id)
+    previous_breakdown = status_breakdown(db.session, previous_start, previous_end, marketplace_id, company_id)
 
     current_map = dict(zip(breakdown['labels'], breakdown['values']))
     previous_map = dict(zip(previous_breakdown['labels'], previous_breakdown['values']))
@@ -548,9 +595,11 @@ def status_view():
     return render_template(
         'dashboard_status.html',
         marketplaces=marketplaces,
+        companies=companies,
         start_date=start_date,
         end_date=end_date,
         selected_marketplace=marketplace_id,
+        selected_company=company_id,
         status_rows=status_rows,
         status_labels=status_labels,
         status_values=status_values,
