@@ -198,6 +198,27 @@ def normalize_status(value: str) -> str:
     return normalized
 
 
+def open_text_stream(raw_bytes: bytes) -> io.TextIOWrapper:
+    """Return a text stream for the uploaded bytes trying common encodings.
+
+    Some marketplaces export CSV files using Windows encodings such as
+    CP-1252/Latin-1.  Attempt decoding with UTF-8 first and gracefully fall
+    back to these alternatives before ultimately replacing undecodable bytes.
+    """
+
+    encodings = ("utf-8-sig", "utf-8", "cp1252", "latin-1")
+    for encoding in encodings:
+        try:
+            raw_bytes.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+        buffer = io.BytesIO(raw_bytes)
+        return io.TextIOWrapper(buffer, encoding=encoding, newline="")
+
+    buffer = io.BytesIO(raw_bytes)
+    return io.TextIOWrapper(buffer, encoding="utf-8", errors="replace", newline="")
+
+
 def parse_decimal_optional(value: str) -> Optional[Decimal]:
     """Parse decimal value, returning None if empty or invalid."""
     if not value or not value.strip():
@@ -411,8 +432,7 @@ def upload_submit():
             selected_company=selected_company_id,
         )
 
-    buffer = io.BytesIO(raw_bytes)
-    text_stream = io.TextIOWrapper(buffer, encoding="utf-8-sig", newline="")
+    text_stream = open_text_stream(raw_bytes)
     sample = text_stream.read(2048)
     delimiter = detect_delimiter(sample)
     text_stream.seek(0)
