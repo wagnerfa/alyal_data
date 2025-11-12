@@ -35,13 +35,15 @@ STATUS_ALIASES = {
 }
 
 
-def _apply_common_filters(query, start, end, marketplace_id):
+def _apply_common_filters(query, start, end, marketplace_id, company_id=None):
     if start:
         query = query.filter(Sale.data_venda >= start)
     if end:
         query = query.filter(Sale.data_venda <= end)
     if marketplace_id:
         query = query.filter(Sale.marketplace_id == marketplace_id)
+    if company_id:
+        query = query.filter(Sale.company_id == company_id)
     return query
 
 
@@ -57,8 +59,14 @@ def _normalize_status(value: str) -> str:
     return STATUS_ALIASES.get(normalized, normalized)
 
 
-def get_kpis(session: Session, start, end, marketplace_id: Optional[int] = None) -> Dict[str, float]:
-    base_query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+def get_kpis(
+    session: Session,
+    start,
+    end,
+    marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
+) -> Dict[str, float]:
+    base_query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
 
     rows = (
         base_query.with_entities(
@@ -101,8 +109,9 @@ def sales_timeseries(
     start,
     end,
     marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
 ) -> Dict[str, List[float]]:
-    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
 
     rows = (
         query.with_entities(
@@ -144,8 +153,9 @@ def status_breakdown(
     start,
     end,
     marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
 ) -> Dict[str, List[float]]:
-    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
 
     rows = (
         query.with_entities(
@@ -175,11 +185,12 @@ def abc_by_revenue(
     start,
     end,
     marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
     thresholds: Optional[Dict[str, float]] = None,
 ) -> List[Dict[str, float]]:
     thresholds = thresholds or {'A': 0.8, 'B': 0.95}
 
-    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
 
     rows = (
         query.with_entities(
@@ -241,10 +252,16 @@ def abc_by_revenue(
     return resultado
 
 
-def get_data_boundaries(session: Session, marketplace_id: Optional[int] = None):
+def get_data_boundaries(
+    session: Session,
+    marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
+):
     query = session.query(func.min(Sale.data_venda), func.max(Sale.data_venda))
     if marketplace_id:
         query = query.filter(Sale.marketplace_id == marketplace_id)
+    if company_id:
+        query = query.filter(Sale.company_id == company_id)
     min_date, max_date = query.first() or (None, None)
     return min_date, max_date
 
@@ -254,9 +271,10 @@ def top_products_by_revenue(
     start,
     end,
     marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
     limit: int = 5,
 ) -> Dict[str, List]:
-    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
 
     rows = (
         query.with_entities(
@@ -322,8 +340,9 @@ def monthly_sales_counts(
     start,
     end,
     marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
 ) -> Dict[str, List[float]]:
-    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
 
     rows = (
         query.with_entities(
@@ -358,8 +377,9 @@ def monthly_revenue_totals(
     start,
     end,
     marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
 ) -> Dict[str, List[float]]:
-    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
 
     rows = (
         query.with_entities(

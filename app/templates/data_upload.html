@@ -24,6 +24,15 @@
     <div class="dashboard-card">
         <form method="post" enctype="multipart/form-data" class="upload-form">
             <div class="form-group">
+                <label for="company_id">Empresa</label>
+                <select id="company_id" name="company_id" required>
+                    <option value="">Selecione</option>
+                    {% for company in companies %}
+                        <option value="{{ company.id }}" {% if selected_company == company.id %}selected{% endif %}>{{ company.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
                 <label for="marketplace_id">Marketplace</label>
                 <select id="marketplace_id" name="marketplace_id" required>
                     <option value="">Selecione</option>
@@ -33,12 +42,21 @@
                 </select>
             </div>
             <div class="form-group">
+                <label for="company_id">Empresa</label>
+                <select id="company_id" name="company_id">
+                    <option value="">Sem vínculo</option>
+                    {% for company in companies %}
+                        <option value="{{ company.id }}" {% if selected_company == company.id %}selected{% endif %}>{{ company.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
                 <label for="file">Arquivo CSV</label>
                 <input type="file" id="file" name="file" accept=".csv" required>
             </div>
             <button type="submit" class="btn btn-primary">Importar vendas</button>
         </form>
-        <p class="card-description" style="margin-top: 20px;">Precisa conferir os registros importados? <a href="{{ url_for('data.sales_list') }}">Acesse a lista de vendas</a>.</p>
+        <p class="card-description" style="margin-top: 20px;">Precisa conferir os registros importados? <a href="{{ url_for('data.sales_list', company_id=selected_company if selected_company else None) }}">Acesse a lista de vendas</a>.</p>
     </div>
 </div>
 {% endblock %}

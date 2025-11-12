@@ -10,7 +10,12 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False, default='user')  # 'user' ou 'manager'
     logo_filename = db.Column(db.String(255))
-    manager_notes = db.relationship('ManagerNote', backref='author', lazy=True)
+    manager_notes = db.relationship(
+        'ManagerNote',
+        backref='author',
+        lazy=True,
+        foreign_keys='ManagerNote.author_id',
+    )
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -96,6 +101,10 @@ class ManagerNote(db.Model):
     periodo_fim = db.Column(db.Date, nullable=False)
     conteudo = db.Column(db.Text, nullable=False)
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)
 
     def __repr__(self):
-        return f'<ManagerNote {self.periodo_inicio} - {self.periodo_fim}>'
+        return (
+            f'<ManagerNote {self.periodo_inicio} - {self.periodo_fim} '
+            f'company={self.company_id}>'
+        )

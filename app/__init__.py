@@ -8,6 +8,8 @@ from config import Config
 from app.utils.formatting import format_currency_br, format_decimal_br
 from sqlalchemy import inspect, text
 
+from app.migrations import run_all_migrations
+
 db = SQLAlchemy()
 login_manager = LoginManager()
 
@@ -58,10 +60,38 @@ def create_app():
             db.session.add(user)
             db.session.commit()
 
+        sale_columns = {col['name'] for col in inspector.get_columns('sale')}
+        if 'company_id' not in sale_columns:
+            try:
+                db.session.execute(text('ALTER TABLE sale ADD COLUMN company_id INTEGER'))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+            else:
+                sale_columns.add('company_id')
+
+        if 'company_id' in sale_columns:
+            default_company = (
+                User.query.filter_by(role='user')
+                .order_by(User.id.asc())
+                .first()
+            )
+            if default_company:
+                try:
+                    db.session.execute(
+                        text('UPDATE sale SET company_id = :company_id WHERE company_id IS NULL'),
+                        {'company_id': default_company.id},
+                    )
+                    db.session.commit()
+                except Exception:
+                    db.session.rollback()
+
         default_marketplaces = ['Mercado Livre', 'Shopee', 'Amazon', 'Magalu']
         for marketplace_name in default_marketplaces:
             if not Marketplace.query.filter_by(nome=marketplace_name).first():
                 db.session.add(Marketplace(nome=marketplace_name))
         db.session.commit()
+
+        run_all_migrations(db)
 
     return app
