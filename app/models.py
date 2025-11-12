@@ -16,6 +16,12 @@ class User(UserMixin, db.Model):
         lazy=True,
         foreign_keys='ManagerNote.author_id',
     )
+    sales = db.relationship(
+        'Sale',
+        backref='company',
+        lazy=True,
+        foreign_keys='Sale.company_id',
+    )
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

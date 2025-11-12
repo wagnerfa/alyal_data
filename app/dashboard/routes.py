@@ -640,32 +640,42 @@ def status_view():
 @dashboard_bp.route('/analytics')
 @login_required
 def analytics_dashboard():
-    start_date, end_date, marketplace_id = _get_filters_from_request()
+    start_date, end_date, marketplace_id, company_id = _get_filters_from_request()
     marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
 
+    # For managers, show company selector; for users, use their own company_id
+    if current_user.is_manager():
+        companies = User.query.filter_by(role='user').order_by(User.username.asc()).all()
+        company_ids = [company.id for company in companies]
+        if company_id not in company_ids and company_ids:
+            company_id = company_ids[0]
+    else:
+        company_id = current_user.id
+        companies = []
+
     # Check for data and adjust period if needed
-    kpis = get_kpis(db.session, start_date, end_date, marketplace_id)
+    kpis = get_kpis(db.session, start_date, end_date, marketplace_id, company_id)
     if kpis['faturamento'] == 0.0 and kpis['pedidos_totais'] == 0.0:
-        min_date, max_date = get_data_boundaries(db.session, marketplace_id)
+        min_date, max_date = get_data_boundaries(db.session, marketplace_id, company_id)
         if min_date and max_date:
             if min_date > max_date:
                 min_date, max_date = max_date, min_date
             start_date, end_date = min_date, max_date
 
     # Geographic Analysis
-    state_data = sales_by_state(db.session, start_date, end_date, marketplace_id, limit=10)
-    city_data = sales_by_city(db.session, start_date, end_date, marketplace_id, limit=15)
+    state_data = sales_by_state(db.session, start_date, end_date, marketplace_id, company_id, limit=10)
+    city_data = sales_by_city(db.session, start_date, end_date, marketplace_id, company_id, limit=15)
 
     # Product & Margin Analysis
-    price_range_data = products_by_price_range(db.session, start_date, end_date, marketplace_id)
-    margin_products = top_products_with_margin(db.session, start_date, end_date, marketplace_id, limit=10)
+    price_range_data = products_by_price_range(db.session, start_date, end_date, marketplace_id, company_id)
+    margin_products = top_products_with_margin(db.session, start_date, end_date, marketplace_id, company_id, limit=10)
 
     # Shipping Performance
-    shipping_data = shipping_performance(db.session, start_date, end_date, marketplace_id)
+    shipping_data = shipping_performance(db.session, start_date, end_date, marketplace_id, company_id)
 
     # Customer Analysis
-    rfm_data = calculate_rfm_analysis(db.session, start_date, end_date, marketplace_id)
-    cohort_data = cohort_analysis(db.session, start_date, end_date, marketplace_id)
+    rfm_data = calculate_rfm_analysis(db.session, start_date, end_date, marketplace_id, company_id)
+    cohort_data = cohort_analysis(db.session, start_date, end_date, marketplace_id, company_id)
 
     # RFM Segment Distribution
     rfm_segments = {}
@@ -676,9 +686,11 @@ def analytics_dashboard():
     return render_template(
         'dashboard_analytics.html',
         marketplaces=marketplaces,
+        companies=companies if current_user.is_manager() else [],
         start_date=start_date,
         end_date=end_date,
         selected_marketplace=marketplace_id,
+        selected_company=company_id,
         # Geographic
         state_labels=state_data['labels'],
         state_revenues=state_data['revenues'],
