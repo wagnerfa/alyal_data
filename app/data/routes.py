@@ -15,7 +15,7 @@ from app.data import data_bp
 from app.models import Marketplace, Sale, User
 
 
-MAX_UPLOAD_SIZE = 2 * 1024 * 1024  # 2MB
+MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50MB (increased for large CSV files)
 REQUIRED_COLUMNS = {"nome_produto", "sku", "status_pedido", "data_venda", "valor_total_venda"}
 
 HEADER_SYNONYMS: Dict[str, Iterable[str]] = {
@@ -391,7 +391,7 @@ def upload_submit():
     size = file.stream.tell()
     file.stream.seek(0)
     if size > MAX_UPLOAD_SIZE:
-        flash("O arquivo excede o tamanho máximo permitido de 2MB.", "error")
+        flash("O arquivo excede o tamanho máximo permitido de 50MB.", "error")
         return render_template(
             "data_upload.html",
             marketplaces=marketplaces,
