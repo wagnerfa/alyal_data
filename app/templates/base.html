@@ -33,6 +33,7 @@
                 <li><a href="{{ url_for('dashboard.manager_dashboard' if current_user.is_manager() else 'dashboard.user_dashboard') }}">Dashboard</a></li>
                 <li><a href="{{ url_for('dashboard.abc_view') }}">Produtos (ABC)</a></li>
                 <li><a href="{{ url_for('dashboard.status_view') }}">Status</a></li>
+                <li><a href="{{ url_for('dashboard.analytics_dashboard') }}">Análises Avançadas</a></li>
                 {% if current_user.is_manager() %}
                     <li><a href="{{ url_for('dashboard.manage_companies') }}">Empresas</a></li>
                     <li><a href="{{ url_for('data.sales_list') }}">Vendas</a></li>

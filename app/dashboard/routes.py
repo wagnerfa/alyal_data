@@ -10,13 +10,22 @@ from app.dashboard import dashboard_bp
 from app.models import ManagerNote, Marketplace, User
 from app.services.metrics import (
     abc_by_revenue,
+    calculate_rfm_analysis,
+    cohort_analysis,
     get_data_boundaries,
     get_kpis,
     monthly_revenue_totals,
     monthly_sales_counts,
+    products_by_price_range,
+    sales_by_city,
+    sales_by_day_of_week,
+    sales_by_hour_of_day,
+    sales_by_state,
     sales_timeseries,
+    shipping_performance,
     status_breakdown,
     top_products_by_revenue,
+    top_products_with_margin,
 )
 from app.utils.formatting import format_currency_br, format_decimal_br
 from werkzeug.utils import secure_filename
@@ -388,6 +397,8 @@ def user_dashboard():
     top_products = top_products_by_revenue(db.session, start_date, end_date, marketplace_id)
     monthly_sales = monthly_sales_counts(db.session, start_date, end_date, marketplace_id)
     monthly_revenue = monthly_revenue_totals(db.session, start_date, end_date, marketplace_id)
+    sales_by_hour = sales_by_hour_of_day(db.session, start_date, end_date, marketplace_id)
+    sales_by_day = sales_by_day_of_week(db.session, start_date, end_date, marketplace_id)
 
     manager_note = (
         ManagerNote.query
@@ -422,6 +433,10 @@ def user_dashboard():
         monthly_sales_values=monthly_sales['values'],
         monthly_revenue_labels=monthly_revenue['labels'],
         monthly_revenue_values=monthly_revenue['values'],
+        sales_by_hour_labels=sales_by_hour['labels'],
+        sales_by_hour_values=sales_by_hour['values'],
+        sales_by_day_labels=sales_by_day['labels'],
+        sales_by_day_values=sales_by_day['values'],
     )
 
 
@@ -555,4 +570,67 @@ def status_view():
         status_labels=status_labels,
         status_values=status_values,
         previous_period=(previous_start, previous_end),
+    )
+
+
+@dashboard_bp.route('/analytics')
+@login_required
+def analytics_dashboard():
+    start_date, end_date, marketplace_id = _get_filters_from_request()
+    marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
+
+    # Check for data and adjust period if needed
+    kpis = get_kpis(db.session, start_date, end_date, marketplace_id)
+    if kpis['faturamento'] == 0.0 and kpis['pedidos_totais'] == 0.0:
+        min_date, max_date = get_data_boundaries(db.session, marketplace_id)
+        if min_date and max_date:
+            if min_date > max_date:
+                min_date, max_date = max_date, min_date
+            start_date, end_date = min_date, max_date
+
+    # Geographic Analysis
+    state_data = sales_by_state(db.session, start_date, end_date, marketplace_id, limit=10)
+    city_data = sales_by_city(db.session, start_date, end_date, marketplace_id, limit=15)
+
+    # Product & Margin Analysis
+    price_range_data = products_by_price_range(db.session, start_date, end_date, marketplace_id)
+    margin_products = top_products_with_margin(db.session, start_date, end_date, marketplace_id, limit=10)
+
+    # Shipping Performance
+    shipping_data = shipping_performance(db.session, start_date, end_date, marketplace_id)
+
+    # Customer Analysis
+    rfm_data = calculate_rfm_analysis(db.session, start_date, end_date, marketplace_id)
+    cohort_data = cohort_analysis(db.session, start_date, end_date, marketplace_id)
+
+    # RFM Segment Distribution
+    rfm_segments = {}
+    for customer in rfm_data:
+        segment = customer['segment']
+        rfm_segments[segment] = rfm_segments.get(segment, 0) + 1
+
+    return render_template(
+        'dashboard_analytics.html',
+        marketplaces=marketplaces,
+        start_date=start_date,
+        end_date=end_date,
+        selected_marketplace=marketplace_id,
+        # Geographic
+        state_labels=state_data['labels'],
+        state_revenues=state_data['revenues'],
+        city_labels=city_data['labels'],
+        city_revenues=city_data['revenues'],
+        # Product & Margin
+        price_range_labels=price_range_data['labels'],
+        price_range_revenues=price_range_data['revenues'],
+        margin_products=margin_products,
+        # Shipping
+        shipping_data=shipping_data,
+        # Customer Analysis
+        rfm_data=rfm_data[:50],  # Limit to top 50 for display
+        rfm_segments=rfm_segments,
+        cohort_labels=cohort_data['cohort_labels'],
+        cohort_period_labels=cohort_data['period_labels'],
+        cohort_matrix=cohort_data['retention_matrix'],
+        cohort_sizes=cohort_data['cohort_sizes'],
     )

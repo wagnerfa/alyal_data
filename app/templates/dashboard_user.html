@@ -76,6 +76,20 @@
         {% include '_partials/_chart_block.html' %}
     </div>
 
+    <div class="dashboard-grid">
+        {% set title = 'Vendas por hora do dia' %}
+        {% set canvas_id = 'salesByHourChart' %}
+        {% set description = 'Distribuição de vendas ao longo das 24 horas do dia.' %}
+        {% set height = 260 %}
+        {% include '_partials/_chart_block.html' %}
+
+        {% set title = 'Vendas por dia da semana' %}
+        {% set canvas_id = 'salesByDayChart' %}
+        {% set description = 'Total de vendas agrupadas por dia da semana.' %}
+        {% set height = 260 %}
+        {% include '_partials/_chart_block.html' %}
+    </div>
+
     <div class="dashboard-card note-card">
         <h3>Comentário do Gestor</h3>
         {% if manager_note %}
@@ -312,6 +326,88 @@
                         ticks: {
                             color: textColor,
                             callback: (value) => formatCurrency(value)
+                        },
+                        grid: { color: borderTone }
+                    }
+                },
+                plugins: {
+                    ...baseOptions.plugins,
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    const salesByHourLabels = {{ sales_by_hour_labels|tojson }};
+    const salesByHourValues = {{ sales_by_hour_values|tojson }};
+    const salesByHourCtx = document.getElementById('salesByHourChart');
+    if (salesByHourCtx && Array.isArray(salesByHourValues) && salesByHourValues.length) {
+        new Chart(salesByHourCtx, {
+            type: 'bar',
+            data: {
+                labels: salesByHourLabels,
+                datasets: [{
+                    label: 'Vendas',
+                    data: salesByHourValues,
+                    backgroundColor: 'rgba(246, 194, 62, 0.6)',
+                    borderColor: '#F6C23E',
+                    borderWidth: 1.5,
+                    maxBarThickness: 24
+                }],
+            },
+            options: {
+                ...baseOptions,
+                scales: {
+                    x: {
+                        ticks: { color: textColor },
+                        grid: { color: borderTone }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: textColor,
+                            precision: 0
+                        },
+                        grid: { color: borderTone }
+                    }
+                },
+                plugins: {
+                    ...baseOptions.plugins,
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    const salesByDayLabels = {{ sales_by_day_labels|tojson }};
+    const salesByDayValues = {{ sales_by_day_values|tojson }};
+    const salesByDayCtx = document.getElementById('salesByDayChart');
+    if (salesByDayCtx && Array.isArray(salesByDayValues) && salesByDayValues.length) {
+        new Chart(salesByDayCtx, {
+            type: 'bar',
+            data: {
+                labels: salesByDayLabels,
+                datasets: [{
+                    label: 'Vendas',
+                    data: salesByDayValues,
+                    backgroundColor: 'rgba(237, 125, 49, 0.6)',
+                    borderColor: '#ED7D31',
+                    borderWidth: 1.5,
+                    maxBarThickness: 48
+                }],
+            },
+            options: {
+                ...baseOptions,
+                scales: {
+                    x: {
+                        ticks: { color: textColor },
+                        grid: { color: borderTone }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: textColor,
+                            precision: 0
                         },
                         grid: { color: borderTone }
                     }
