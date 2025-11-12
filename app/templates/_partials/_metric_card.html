@@ -1,0 +1,27 @@
+{#
+    Componente de Card de Métrica
+    Uso: {% include '_partials/_metric_card.html' with context %}
+
+    Parâmetros:
+    - metric_icon: Emoji ou ícone
+    - metric_label: Label descritivo
+    - metric_value: Valor principal
+    - metric_change: Variação percentual (opcional)
+    - metric_variant: primary|secondary|accent|warning|success|danger
+#}
+
+<div class="metric-card {{ metric_variant|default('primary') }}">
+    {% if metric_icon %}
+    <div class="metric-icon">{{ metric_icon }}</div>
+    {% endif %}
+    <div class="metric-content">
+        <span class="metric-label">{{ metric_label }}</span>
+        <span class="metric-value">{{ metric_value }}</span>
+        {% if metric_change is defined %}
+        <span class="metric-change {{ 'positive' if metric_change > 0 else 'negative' if metric_change < 0 else 'neutral' }}">
+            {% if metric_change > 0 %}↑{% elif metric_change < 0 %}↓{% else %}→{% endif %}
+            {{ metric_change|abs|decimal_br(1) }}%
+        </span>
+        {% endif %}
+    </div>
+</div>

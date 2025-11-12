@@ -1,0 +1,43 @@
+{#
+    Componente de Card de Gráfico Avançado
+    Uso: {% include '_partials/_chart_card_advanced.html' with context %}
+
+    Parâmetros:
+    - chart_title: Título do gráfico
+    - chart_description: Descrição/subtítulo
+    - chart_id: ID do canvas
+    - chart_height: Altura do gráfico (padrão: 320px)
+    - has_export: Mostrar botão de exportar (padrão: false)
+    - chart_insight: Insight automático opcional
+    - card_class: Classes CSS adicionais
+#}
+
+<div class="chart-card advanced {{ card_class|default('') }}">
+    <div class="chart-card-header">
+        <div class="chart-title-group">
+            <h3>{{ chart_title }}</h3>
+            {% if chart_description %}
+            <p class="chart-description">{{ chart_description }}</p>
+            {% endif %}
+        </div>
+        {% if has_export %}
+        <button class="btn-export" onclick="ChartUtils.exportChart('{{ chart_id }}')" title="Exportar gráfico">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Exportar
+        </button>
+        {% endif %}
+    </div>
+    <div class="chart-wrapper" style="height: {{ chart_height|default('320px') }}">
+        <canvas id="{{ chart_id }}"></canvas>
+    </div>
+    {% if chart_insight %}
+    <div class="chart-insight">
+        <span class="insight-icon">💡</span>
+        <span>{{ chart_insight }}</span>
+    </div>
+    {% endif %}
+</div>
