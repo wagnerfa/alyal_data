@@ -47,14 +47,49 @@ class Marketplace(db.Model):
 class Sale(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     marketplace_id = db.Column(db.Integer, db.ForeignKey('marketplace.id'), nullable=False, index=True)
-    company_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True, index=True)
+
+    # Colunas originais
     nome_produto = db.Column(db.String(255), nullable=False)
     sku = db.Column(db.String(120), nullable=False, index=True)
     status_pedido = db.Column(db.String(50), nullable=False, index=True)
     data_venda = db.Column(db.Date, nullable=False, index=True, default=date.today)
     valor_total_venda = db.Column(db.Numeric(12, 2), nullable=False)
 
-    company = db.relationship('User', foreign_keys=[company_id], backref=db.backref('sales', lazy=True))
+    # Colunas de Dados do Pedido
+    numero_pedido = db.Column(db.String(100), nullable=True, index=True)
+    titulo_anuncio = db.Column(db.String(500), nullable=True)
+    numero_anuncio = db.Column(db.String(100), nullable=True)
+    unidades = db.Column(db.Integer, nullable=True)
+
+    # Colunas de Cliente
+    comprador = db.Column(db.String(255), nullable=True, index=True)
+    cpf_comprador = db.Column(db.String(20), nullable=True)
+
+    # Colunas Financeiras
+    total_brl = db.Column(db.Numeric(12, 2), nullable=True)
+    receita_produtos = db.Column(db.Numeric(12, 2), nullable=True)
+    receita_acrescimo_preco = db.Column(db.Numeric(12, 2), nullable=True)
+    taxa_parcelamento = db.Column(db.Numeric(12, 2), nullable=True)
+    tarifa_venda_impostos = db.Column(db.Numeric(12, 2), nullable=True)
+    receita_envio = db.Column(db.Numeric(12, 2), nullable=True)
+    tarifas_envio = db.Column(db.Numeric(12, 2), nullable=True)
+    custo_envio = db.Column(db.Numeric(12, 2), nullable=True)
+    custo_diferencas_peso = db.Column(db.Numeric(12, 2), nullable=True)
+    cancelamentos_reembolsos = db.Column(db.Numeric(12, 2), nullable=True)
+    preco_unitario = db.Column(db.Numeric(12, 2), nullable=True)
+
+    # Colunas Geográficas
+    estado_comprador = db.Column(db.String(50), nullable=True, index=True)
+    cidade_comprador = db.Column(db.String(100), nullable=True, index=True)
+
+    # Colunas de Envio
+    forma_entrega = db.Column(db.String(100), nullable=True)
+
+    # Colunas Calculadas/Derivadas
+    lucro_liquido = db.Column(db.Numeric(12, 2), nullable=True)
+    margem_percentual = db.Column(db.Numeric(5, 2), nullable=True)
+    faixa_preco = db.Column(db.String(50), nullable=True)
 
     def __repr__(self):
         return f'<Sale {self.sku} {self.valor_total_venda}>'

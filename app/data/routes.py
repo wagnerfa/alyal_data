@@ -20,44 +20,80 @@ REQUIRED_COLUMNS = {"nome_produto", "sku", "status_pedido", "data_venda", "valor
 
 HEADER_SYNONYMS: Dict[str, Iterable[str]] = {
     "nome_produto": {
-        "nome_produto",
-        "nome",
-        "produto",
-        "titulo",
-        "titulo_produto",
-        "item",
-        "descricao",
-        "descricao_produto",
+        "nome_produto", "nome", "produto", "titulo", "titulo_produto", "item", "descricao", "descricao_produto",
     },
     "sku": {
-        "sku",
-        "codigo",
-        "codigo_sku",
-        "referencia",
-        "id_sku",
+        "sku", "codigo", "codigo_sku", "referencia", "id_sku",
     },
     "status_pedido": {
-        "status_pedido",
-        "status",
-        "situacao",
-        "status_da_venda",
-        "situacao_pedido",
+        "status_pedido", "status", "situacao", "status_da_venda", "situacao_pedido",
     },
     "data_venda": {
-        "data_venda",
-        "data",
-        "data_pedido",
-        "data_da_venda",
-        "pedido_data",
+        "data_venda", "data", "data_pedido", "data_da_venda", "pedido_data",
     },
     "valor_total_venda": {
-        "valor_total_venda",
-        "valor",
-        "total",
-        "valor_total",
-        "preco_total",
-        "preco",
-        "montante",
+        "valor_total_venda", "valor", "total", "valor_total", "preco_total", "preco", "montante",
+    },
+    # Novos campos
+    "numero_pedido": {
+        "numero_pedido", "n_de_venda", "numero_venda", "num_pedido", "id_pedido", "pedido",
+    },
+    "titulo_anuncio": {
+        "titulo_anuncio", "titulo_do_anuncio", "anuncio", "titulo_produto",
+    },
+    "numero_anuncio": {
+        "numero_anuncio", "_de_anuncio", "num_anuncio", "id_anuncio", "anuncio_id",
+    },
+    "unidades": {
+        "unidades", "quantidade", "qtd", "qtde", "qte",
+    },
+    "comprador": {
+        "comprador", "cliente", "nome_comprador", "cliente_nome", "buyer",
+    },
+    "cpf_comprador": {
+        "cpf_comprador", "cpf", "cpf_cnpj", "documento",
+    },
+    "total_brl": {
+        "total_brl", "total", "valor_total", "total_r",
+    },
+    "receita_produtos": {
+        "receita_produtos", "receita_por_produtos", "valor_produtos", "produtos",
+    },
+    "receita_acrescimo_preco": {
+        "receita_acrescimo_preco", "acrescimo_no_preco", "acrescimo", "acrescimo_preco",
+    },
+    "taxa_parcelamento": {
+        "taxa_parcelamento", "taxa_de_parcelamento", "parcelamento",
+    },
+    "tarifa_venda_impostos": {
+        "tarifa_venda_impostos", "tarifa_de_venda_e_impostos", "tarifas", "impostos",
+    },
+    "receita_envio": {
+        "receita_envio", "receita_por_envio", "valor_envio", "frete_cobrado",
+    },
+    "tarifas_envio": {
+        "tarifas_envio", "tarifas_de_envio", "taxa_envio",
+    },
+    "custo_envio": {
+        "custo_envio", "custo_de_envio", "valor_frete",
+    },
+    "custo_diferencas_peso": {
+        "custo_diferencas_peso", "custo_por_diferencas_de_peso_e_dimensoes", "diferenca_peso",
+    },
+    "cancelamentos_reembolsos": {
+        "cancelamentos_reembolsos", "cancelamentos_e_reembolsos", "reembolsos", "cancelamentos",
+    },
+    "preco_unitario": {
+        "preco_unitario", "preco_por_unidade", "valor_unitario",
+    },
+    "estado_comprador": {
+        "estado_comprador", "estado", "uf", "estado_entrega",
+    },
+    "cidade_comprador": {
+        "cidade_comprador", "cidade", "cidade_entrega", "municipio",
+    },
+    "forma_entrega": {
+        "forma_entrega", "tipo_entrega", "metodo_envio", "modalidade",
     },
 }
 
@@ -160,6 +196,77 @@ def normalize_status(value: str) -> str:
     if normalized in VALID_STATUSES:
         return normalized
     return normalized
+
+
+def parse_decimal_optional(value: str) -> Optional[Decimal]:
+    """Parse decimal value, returning None if empty or invalid."""
+    if not value or not value.strip():
+        return None
+    try:
+        return parse_decimal_ptbr_en(value)
+    except (ValueError, InvalidOperation):
+        return None
+
+
+def parse_int_optional(value: str) -> Optional[int]:
+    """Parse integer value, returning None if empty or invalid."""
+    if not value or not value.strip():
+        return None
+    try:
+        return int(value.strip())
+    except ValueError:
+        return None
+
+
+def categorize_price_range(price: Optional[Decimal]) -> Optional[str]:
+    """Categorize price into range: Baixo (< 50), Médio (50-200), Alto (> 200)."""
+    if price is None:
+        return None
+    if price < Decimal("50"):
+        return "Baixo"
+    elif price <= Decimal("200"):
+        return "Médio"
+    else:
+        return "Alto"
+
+
+def calculate_profit_and_margin(
+    receita_produtos: Optional[Decimal],
+    taxa_parcelamento: Optional[Decimal],
+    tarifa_venda_impostos: Optional[Decimal],
+    custo_envio: Optional[Decimal],
+    custo_diferencas_peso: Optional[Decimal],
+    cancelamentos_reembolsos: Optional[Decimal],
+) -> tuple[Optional[Decimal], Optional[Decimal]]:
+    """
+    Calculate liquid profit and profit margin percentage.
+
+    Returns: (lucro_liquido, margem_percentual)
+    """
+    # Se não temos receita de produtos, não podemos calcular
+    if receita_produtos is None or receita_produtos == 0:
+        return None, None
+
+    # Calcular custos totais (valores negativos já vêm como negativos do CSV)
+    custos = Decimal("0")
+    if taxa_parcelamento:
+        custos += abs(taxa_parcelamento)  # Custo, sempre positivo
+    if tarifa_venda_impostos:
+        custos += abs(tarifa_venda_impostos)  # Custo, sempre positivo
+    if custo_envio:
+        custos += abs(custo_envio)  # Custo, sempre positivo
+    if custo_diferencas_peso:
+        custos += abs(custo_diferencas_peso)  # Custo, sempre positivo
+    if cancelamentos_reembolsos:
+        custos += abs(cancelamentos_reembolsos)  # Custo, sempre positivo
+
+    # Lucro = Receita - Custos
+    lucro_liquido = receita_produtos - custos
+
+    # Margem = (Lucro / Receita) * 100
+    margem_percentual = (lucro_liquido / receita_produtos) * Decimal("100")
+
+    return lucro_liquido, margem_percentual
 
 
 def _ensure_manager_access():
@@ -349,6 +456,7 @@ def upload_submit():
         line_data = {key: (row.get(source) or "").strip() for key, source in header_map.items()}
 
         try:
+            # Campos obrigatórios
             nome_produto = line_data["nome_produto"].strip()
             sku = line_data["sku"].strip()
             if not nome_produto:
@@ -363,14 +471,76 @@ def upload_submit():
             data_venda = parse_date(line_data["data_venda"])
             valor_total = parse_decimal_ptbr_en(line_data["valor_total_venda"])
 
+            # Novos campos opcionais
+            numero_pedido = line_data.get("numero_pedido", "").strip() or None
+            titulo_anuncio = line_data.get("titulo_anuncio", "").strip() or None
+            numero_anuncio = line_data.get("numero_anuncio", "").strip() or None
+            unidades = parse_int_optional(line_data.get("unidades", ""))
+            comprador = line_data.get("comprador", "").strip() or None
+            cpf_comprador = line_data.get("cpf_comprador", "").strip() or None
+            estado_comprador = line_data.get("estado_comprador", "").strip() or None
+            cidade_comprador = line_data.get("cidade_comprador", "").strip() or None
+            forma_entrega = line_data.get("forma_entrega", "").strip() or None
+
+            # Campos financeiros (converter para Decimal)
+            total_brl = parse_decimal_optional(line_data.get("total_brl", ""))
+            receita_produtos = parse_decimal_optional(line_data.get("receita_produtos", ""))
+            receita_acrescimo_preco = parse_decimal_optional(line_data.get("receita_acrescimo_preco", ""))
+            taxa_parcelamento = parse_decimal_optional(line_data.get("taxa_parcelamento", ""))
+            tarifa_venda_impostos = parse_decimal_optional(line_data.get("tarifa_venda_impostos", ""))
+            receita_envio = parse_decimal_optional(line_data.get("receita_envio", ""))
+            tarifas_envio = parse_decimal_optional(line_data.get("tarifas_envio", ""))
+            custo_envio = parse_decimal_optional(line_data.get("custo_envio", ""))
+            custo_diferencas_peso = parse_decimal_optional(line_data.get("custo_diferencas_peso", ""))
+            cancelamentos_reembolsos = parse_decimal_optional(line_data.get("cancelamentos_reembolsos", ""))
+            preco_unitario = parse_decimal_optional(line_data.get("preco_unitario", ""))
+
+            # Calcular lucro e margem
+            lucro_liquido, margem_percentual = calculate_profit_and_margin(
+                receita_produtos,
+                taxa_parcelamento,
+                tarifa_venda_impostos,
+                custo_envio,
+                custo_diferencas_peso,
+                cancelamentos_reembolsos,
+            )
+
+            # Categorizar faixa de preço
+            faixa_preco = categorize_price_range(preco_unitario or valor_total)
+
             sale = Sale(
                 marketplace_id=marketplace.id,
-                company_id=company.id if company else None,
+                company_id=current_user.id if not current_user.is_manager() else None,
+                # Campos originais
                 nome_produto=nome_produto,
                 sku=sku,
                 status_pedido=status,
                 data_venda=data_venda,
                 valor_total_venda=valor_total,
+                # Novos campos
+                numero_pedido=numero_pedido,
+                titulo_anuncio=titulo_anuncio,
+                numero_anuncio=numero_anuncio,
+                unidades=unidades,
+                comprador=comprador,
+                cpf_comprador=cpf_comprador,
+                total_brl=total_brl,
+                receita_produtos=receita_produtos,
+                receita_acrescimo_preco=receita_acrescimo_preco,
+                taxa_parcelamento=taxa_parcelamento,
+                tarifa_venda_impostos=tarifa_venda_impostos,
+                receita_envio=receita_envio,
+                tarifas_envio=tarifas_envio,
+                custo_envio=custo_envio,
+                custo_diferencas_peso=custo_diferencas_peso,
+                cancelamentos_reembolsos=cancelamentos_reembolsos,
+                preco_unitario=preco_unitario,
+                estado_comprador=estado_comprador,
+                cidade_comprador=cidade_comprador,
+                forma_entrega=forma_entrega,
+                lucro_liquido=lucro_liquido,
+                margem_percentual=margem_percentual,
+                faixa_preco=faixa_preco,
             )
             sales_to_insert.append(sale)
         except (ValueError, InvalidOperation) as exc:

@@ -1,0 +1,549 @@
+{% extends "base.html" %}
+
+{% block title %}Análises Avançadas - Alyal{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <h1>Análises Avançadas</h1>
+    </div>
+
+    {% set action = url_for('dashboard.analytics_dashboard') %}
+    {% include '_partials/_filters.html' %}
+
+    <!-- Geographic Analysis Section -->
+    <div class="dashboard-section">
+        <h2>Análise Geográfica</h2>
+        <div class="dashboard-grid">
+            {% set title = 'Top 10 Estados por Faturamento' %}
+            {% set canvas_id = 'stateRevenueChart' %}
+            {% set description = 'Estados com maior faturamento no período.' %}
+            {% set height = 300 %}
+            {% include '_partials/_chart_block.html' %}
+
+            {% set title = 'Top 15 Cidades por Faturamento' %}
+            {% set canvas_id = 'cityRevenueChart' %}
+            {% set description = 'Cidades com maior faturamento no período.' %}
+            {% set height = 400 %}
+            {% include '_partials/_chart_block.html' %}
+        </div>
+    </div>
+
+    <!-- Product & Margin Analysis Section -->
+    <div class="dashboard-section">
+        <h2>Análise de Produtos e Margens</h2>
+        <div class="dashboard-grid">
+            {% set title = 'Distribuição por Faixa de Preço' %}
+            {% set canvas_id = 'priceRangeChart' %}
+            {% set description = 'Faturamento por categoria de preço (Baixo < R$50, Médio R$50-200, Alto > R$200).' %}
+            {% set height = 260 %}
+            {% include '_partials/_chart_block.html' %}
+
+            <div class="dashboard-card">
+                <h3>Produtos com Melhor Margem</h3>
+                <p class="card-description">Top 10 produtos com maior margem de lucro.</p>
+                {% if margin_products %}
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>SKU</th>
+                                <th>Produto</th>
+                                <th>Margem %</th>
+                                <th>Lucro Total</th>
+                                <th>Vendas</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in margin_products %}
+                            <tr>
+                                <td>{{ product.sku }}</td>
+                                <td>{{ product.nome_produto[:50] }}</td>
+                                <td>{{ product.avg_margin | decimal_br(2) }}%</td>
+                                <td>{{ product.total_profit | currency_br }}</td>
+                                <td>{{ product.sales_count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p>Nenhum dado de margem disponível no período.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Shipping Performance Section -->
+    <div class="dashboard-section">
+        <h2>Desempenho de Envio</h2>
+        <div class="dashboard-grid">
+            <div class="dashboard-card kpi-card">
+                <h3>Métricas de Envio</h3>
+                <div class="kpi-grid">
+                    <div class="kpi-item">
+                        <span class="kpi-label">Total de Pedidos</span>
+                        <span class="kpi-value">{{ shipping_data.total_orders | decimal_br(0) }}</span>
+                    </div>
+                    <div class="kpi-item">
+                        <span class="kpi-label">Custo Médio de Envio</span>
+                        <span class="kpi-value">{{ shipping_data.avg_shipping_cost | currency_br }}</span>
+                    </div>
+                    <div class="kpi-item">
+                        <span class="kpi-label">Receita Média de Envio</span>
+                        <span class="kpi-value">{{ shipping_data.avg_shipping_revenue | currency_br }}</span>
+                    </div>
+                    <div class="kpi-item">
+                        <span class="kpi-label">Custo Total de Envio</span>
+                        <span class="kpi-value">{{ shipping_data.total_shipping_cost | currency_br }}</span>
+                    </div>
+                    <div class="kpi-item">
+                        <span class="kpi-label">Receita Total de Envio</span>
+                        <span class="kpi-value">{{ shipping_data.total_shipping_revenue | currency_br }}</span>
+                    </div>
+                    <div class="kpi-item">
+                        <span class="kpi-label">Margem de Envio</span>
+                        <span class="kpi-value">{{ shipping_data.shipping_margin | decimal_br(2) }}%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RFM Analysis Section -->
+    <div class="dashboard-section">
+        <h2>Análise RFM de Clientes</h2>
+        <div class="dashboard-grid">
+            {% set title = 'Distribuição de Segmentos RFM' %}
+            {% set canvas_id = 'rfmSegmentChart' %}
+            {% set description = 'Segmentação de clientes baseada em Recency, Frequency e Monetary.' %}
+            {% set height = 260 %}
+            {% include '_partials/_chart_block.html' %}
+
+            <div class="dashboard-card">
+                <h3>Top 50 Clientes (RFM)</h3>
+                <p class="card-description">Clientes ordenados por valor monetário total.</p>
+                {% if rfm_data %}
+                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                    <table class="data-table">
+                        <thead style="position: sticky; top: 0; background: var(--card-bg); z-index: 10;">
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Segmento</th>
+                                <th>Recency (dias)</th>
+                                <th>Frequency</th>
+                                <th>Monetary</th>
+                                <th>Score RFM</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for customer in rfm_data %}
+                            <tr>
+                                <td>{{ customer.comprador[:30] }}</td>
+                                <td><span class="badge badge-{{ customer.segment.lower().replace(' ', '-') }}">{{ customer.segment }}</span></td>
+                                <td>{{ customer.recency }}</td>
+                                <td>{{ customer.frequency }}</td>
+                                <td>{{ customer.monetary | currency_br }}</td>
+                                <td>{{ customer.rfm_score }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p>Nenhum dado de cliente disponível no período.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Cohort Analysis Section -->
+    <div class="dashboard-section">
+        <h2>Análise de Cohort</h2>
+        <div class="dashboard-card" style="grid-column: 1 / -1;">
+            <h3>Matriz de Retenção</h3>
+            <p class="card-description">Taxa de retenção de clientes por cohort (mês da primeira compra).</p>
+            {% if cohort_labels %}
+            <div class="table-responsive" style="max-height: 600px; overflow: auto;">
+                <table class="cohort-table">
+                    <thead>
+                        <tr>
+                            <th>Cohort</th>
+                            <th>Tamanho</th>
+                            {% for period in cohort_period_labels %}
+                            <th>{{ period }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(cohort_labels|length) %}
+                        <tr>
+                            <td><strong>{{ cohort_labels[i] }}</strong></td>
+                            <td>{{ cohort_sizes[i] }}</td>
+                            {% for j in range(cohort_period_labels|length) %}
+                            <td class="cohort-cell" data-rate="{{ cohort_matrix[i][j] if j < (cohort_matrix[i]|length) else 0 }}">
+                                {% if j < (cohort_matrix[i]|length) and cohort_matrix[i][j] > 0 %}
+                                    {{ cohort_matrix[i][j] | decimal_br(1) }}%
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p>Nenhum dado de cohort disponível no período.</p>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<style>
+.dashboard-section {
+    margin-top: 2rem;
+}
+
+.dashboard-section h2 {
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+}
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.kpi-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.kpi-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.kpi-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.data-table th,
+.data-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.data-table th {
+    font-weight: 600;
+    color: var(--text-primary);
+    background: var(--background);
+}
+
+.data-table tbody tr:hover {
+    background: var(--hover-bg);
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-champions {
+    background: #34BFA3;
+    color: white;
+}
+
+.badge-loyal-customers {
+    background: #5B9BD5;
+    color: white;
+}
+
+.badge-new-customers {
+    background: #F6C23E;
+    color: #333;
+}
+
+.badge-potential-loyalists {
+    background: #8082A6;
+    color: white;
+}
+
+.badge-at-risk {
+    background: #ED7D31;
+    color: white;
+}
+
+.badge-cannot-lose-them {
+    background: #C00000;
+    color: white;
+}
+
+.badge-lost {
+    background: #666;
+    color: white;
+}
+
+.badge-others {
+    background: #E0E0E0;
+    color: #333;
+}
+
+.cohort-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-size: 0.875rem;
+}
+
+.cohort-table th,
+.cohort-table td {
+    padding: 0.5rem;
+    text-align: center;
+    border: 1px solid var(--card-border);
+}
+
+.cohort-table th {
+    font-weight: 600;
+    background: var(--background);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.cohort-table tbody tr:first-child th {
+    text-align: left;
+}
+
+.cohort-cell {
+    background: linear-gradient(to right, rgba(52, 191, 163, 0.1) 0%, rgba(52, 191, 163, 0.8) 100%);
+}
+
+.cohort-cell[data-rate="100"] {
+    background: rgba(52, 191, 163, 0.8);
+    font-weight: 600;
+}
+
+.cohort-cell[data-rate="0"] {
+    background: transparent;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const themeStyles = getComputedStyle(document.documentElement);
+    const textColor = (themeStyles.getPropertyValue('--text-primary') || '#2c3e50').trim() || '#2c3e50';
+    const surfaceColor = (themeStyles.getPropertyValue('--card-bg') || '#ffffff').trim() || '#ffffff';
+    const borderTone = (themeStyles.getPropertyValue('--card-border') || 'rgba(0, 0, 0, 0.1)').trim() || 'rgba(0, 0, 0, 0.1)';
+    const formatCurrency = (value) => `R$ ${Number(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+
+    if (window.Chart) {
+        Chart.defaults.color = textColor;
+    }
+
+    const baseOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    color: textColor,
+                    usePointStyle: true
+                }
+            },
+            tooltip: {
+                mode: 'index',
+                intersect: false
+            }
+        },
+        layout: { padding: 0 }
+    };
+
+    // State Revenue Chart
+    const stateLabels = {{ state_labels|tojson }};
+    const stateRevenues = {{ state_revenues|tojson }};
+    const stateCtx = document.getElementById('stateRevenueChart');
+    if (stateCtx && Array.isArray(stateRevenues) && stateRevenues.length) {
+        new Chart(stateCtx, {
+            type: 'bar',
+            data: {
+                labels: stateLabels,
+                datasets: [{
+                    label: 'Faturamento',
+                    data: stateRevenues,
+                    backgroundColor: 'rgba(52, 191, 163, 0.6)',
+                    borderColor: '#34BFA3',
+                    borderWidth: 1.5,
+                }],
+            },
+            options: {
+                ...baseOptions,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: textColor,
+                            callback: (value) => formatCurrency(value)
+                        },
+                        grid: { color: borderTone }
+                    },
+                    y: {
+                        ticks: { color: textColor },
+                        grid: { color: borderTone }
+                    }
+                },
+                plugins: {
+                    ...baseOptions.plugins,
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    // City Revenue Chart
+    const cityLabels = {{ city_labels|tojson }};
+    const cityRevenues = {{ city_revenues|tojson }};
+    const cityCtx = document.getElementById('cityRevenueChart');
+    if (cityCtx && Array.isArray(cityRevenues) && cityRevenues.length) {
+        new Chart(cityCtx, {
+            type: 'bar',
+            data: {
+                labels: cityLabels,
+                datasets: [{
+                    label: 'Faturamento',
+                    data: cityRevenues,
+                    backgroundColor: 'rgba(91, 155, 213, 0.6)',
+                    borderColor: '#5B9BD5',
+                    borderWidth: 1.5,
+                }],
+            },
+            options: {
+                ...baseOptions,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: textColor,
+                            callback: (value) => formatCurrency(value)
+                        },
+                        grid: { color: borderTone }
+                    },
+                    y: {
+                        ticks: { color: textColor },
+                        grid: { color: borderTone }
+                    }
+                },
+                plugins: {
+                    ...baseOptions.plugins,
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    // Price Range Chart
+    const priceRangeLabels = {{ price_range_labels|tojson }};
+    const priceRangeRevenues = {{ price_range_revenues|tojson }};
+    const priceRangeCtx = document.getElementById('priceRangeChart');
+    if (priceRangeCtx && Array.isArray(priceRangeRevenues) && priceRangeRevenues.length) {
+        new Chart(priceRangeCtx, {
+            type: 'pie',
+            data: {
+                labels: priceRangeLabels,
+                datasets: [{
+                    data: priceRangeRevenues,
+                    backgroundColor: [
+                        'rgba(246, 194, 62, 0.8)',
+                        'rgba(128, 130, 166, 0.8)',
+                        'rgba(52, 191, 163, 0.8)'
+                    ],
+                    borderColor: surfaceColor,
+                    borderWidth: 2,
+                }],
+            },
+            options: {
+                ...baseOptions,
+                plugins: {
+                    ...baseOptions.plugins,
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                const label = context.label || '';
+                                const value = formatCurrency(context.parsed);
+                                return `${label}: ${value}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // RFM Segment Chart
+    const rfmSegments = {{ rfm_segments|tojson }};
+    const rfmLabels = Object.keys(rfmSegments);
+    const rfmValues = Object.values(rfmSegments);
+    const rfmCtx = document.getElementById('rfmSegmentChart');
+    if (rfmCtx && rfmValues.length) {
+        const palette = [
+            '#34BFA3', '#5B9BD5', '#F6C23E', '#8082A6',
+            '#ED7D31', '#C00000', '#666666', '#E0E0E0'
+        ];
+        new Chart(rfmCtx, {
+            type: 'doughnut',
+            data: {
+                labels: rfmLabels,
+                datasets: [{
+                    data: rfmValues,
+                    backgroundColor: palette.slice(0, rfmLabels.length),
+                    borderColor: surfaceColor,
+                    borderWidth: 2,
+                }],
+            },
+            options: {
+                ...baseOptions
+            }
+        });
+    }
+
+    // Apply color intensity to cohort cells based on retention rate
+    document.querySelectorAll('.cohort-cell').forEach(cell => {
+        const rate = parseFloat(cell.dataset.rate || 0);
+        if (rate > 0) {
+            const intensity = rate / 100;
+            cell.style.background = `rgba(52, 191, 163, ${intensity * 0.8})`;
+            if (rate >= 80) {
+                cell.style.fontWeight = '600';
+            }
+        }
+    });
+</script>
+{% endblock %}
