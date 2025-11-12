@@ -1080,3 +1080,177 @@ def cohort_analysis(
         'retention_matrix': retention_matrix,
         'cohort_sizes': cohort_sizes,
     }
+
+
+def revenue_composition(
+    session: Session,
+    start,
+    end,
+    marketplace_id: Optional[int] = None,
+) -> Dict[str, float]:
+    """
+    Retorna composição detalhada da receita e custos.
+    Útil para gráficos waterfall mostrando o fluxo do lucro.
+    """
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+
+    rows = (
+        query.filter(Sale.status_pedido.in_(list(VALID_STATUSES)))
+        .with_entities(
+            func.sum(Sale.receita_produtos).label('receita_produtos'),
+            func.sum(Sale.receita_envio).label('receita_envio'),
+            func.sum(Sale.receita_acrescimo_preco).label('acrescimos'),
+            func.sum(Sale.taxa_parcelamento).label('taxa_parcelamento'),
+            func.sum(Sale.tarifa_venda_impostos).label('tarifas'),
+            func.sum(Sale.custo_envio).label('custo_envio'),
+            func.sum(Sale.custo_diferencas_peso).label('custo_diferencas'),
+            func.sum(Sale.cancelamentos_reembolsos).label('reembolsos'),
+            func.sum(Sale.lucro_liquido).label('lucro_liquido'),
+        )
+        .first()
+    )
+
+    if not rows or not rows[0]:
+        return {
+            'receita_produtos': 0.0,
+            'receita_envio': 0.0,
+            'acrescimos': 0.0,
+            'taxa_parcelamento': 0.0,
+            'tarifas': 0.0,
+            'custo_envio': 0.0,
+            'custo_diferencas': 0.0,
+            'reembolsos': 0.0,
+            'lucro_liquido': 0.0,
+            'receita_total': 0.0,
+            'custos_totais': 0.0,
+        }
+
+    (receita_produtos, receita_envio, acrescimos, taxa_parcelamento,
+     tarifas, custo_envio, custo_diferencas, reembolsos, lucro_liquido) = rows
+
+    # Converter tudo para Decimal
+    receita_produtos_dec = Decimal(receita_produtos or 0)
+    receita_envio_dec = Decimal(receita_envio or 0)
+    acrescimos_dec = Decimal(acrescimos or 0)
+    taxa_parcelamento_dec = abs(Decimal(taxa_parcelamento or 0))
+    tarifas_dec = abs(Decimal(tarifas or 0))
+    custo_envio_dec = abs(Decimal(custo_envio or 0))
+    custo_diferencas_dec = abs(Decimal(custo_diferencas or 0))
+    reembolsos_dec = abs(Decimal(reembolsos or 0))
+
+    receita_total = receita_produtos_dec + receita_envio_dec + acrescimos_dec
+    custos_totais = (taxa_parcelamento_dec + tarifas_dec + custo_envio_dec +
+                     custo_diferencas_dec + reembolsos_dec)
+
+    return {
+        'receita_produtos': float(receita_produtos_dec.quantize(Decimal('0.01'))),
+        'receita_envio': float(receita_envio_dec.quantize(Decimal('0.01'))),
+        'acrescimos': float(acrescimos_dec.quantize(Decimal('0.01'))),
+        'taxa_parcelamento': float(taxa_parcelamento_dec.quantize(Decimal('0.01'))),
+        'tarifas': float(tarifas_dec.quantize(Decimal('0.01'))),
+        'custo_envio': float(custo_envio_dec.quantize(Decimal('0.01'))),
+        'custo_diferencas': float(custo_diferencas_dec.quantize(Decimal('0.01'))),
+        'reembolsos': float(reembolsos_dec.quantize(Decimal('0.01'))),
+        'lucro_liquido': float((receita_total - custos_totais).quantize(Decimal('0.01'))),
+        'receita_total': float(receita_total.quantize(Decimal('0.01'))),
+        'custos_totais': float(custos_totais.quantize(Decimal('0.01'))),
+    }
+
+
+def margin_evolution(
+    session: Session,
+    start,
+    end,
+    marketplace_id: Optional[int] = None,
+) -> Dict[str, List]:
+    """
+    Retorna evolução da margem de lucro ao longo do tempo (mensal).
+    """
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+
+    rows = (
+        query.filter(Sale.status_pedido.in_(list(VALID_STATUSES)))
+        .filter(Sale.margem_percentual.isnot(None))
+        .with_entities(
+            Sale.data_venda,
+            Sale.margem_percentual,
+            Sale.lucro_liquido,
+        )
+        .all()
+    )
+
+    if not rows:
+        return {'labels': [], 'margins': [], 'profits': []}
+
+    # Agrupar por mês
+    monthly_data: Dict[Tuple[int, int], Dict] = defaultdict(
+        lambda: {'margin_sum': Decimal(0), 'profit_sum': Decimal(0), 'count': 0}
+    )
+
+    for data_venda, margem, lucro in rows:
+        month_key = _month_key(data_venda)
+        margem_dec = margem if isinstance(margem, Decimal) else Decimal(margem or 0)
+        lucro_dec = lucro if isinstance(lucro, Decimal) else Decimal(lucro or 0)
+
+        monthly_data[month_key]['margin_sum'] += margem_dec
+        monthly_data[month_key]['profit_sum'] += lucro_dec
+        monthly_data[month_key]['count'] += 1
+
+    # Ordenar e calcular médias
+    sorted_months = sorted(monthly_data.keys())
+    labels = [f"{month:02d}/{year}" for year, month in sorted_months]
+    margins = []
+    profits = []
+
+    for month_key in sorted_months:
+        data = monthly_data[month_key]
+        avg_margin = data['margin_sum'] / data['count'] if data['count'] > 0 else Decimal(0)
+        margins.append(float(avg_margin.quantize(Decimal('0.01'))))
+        profits.append(float(data['profit_sum'].quantize(Decimal('0.01'))))
+
+    return {
+        'labels': labels,
+        'margins': margins,
+        'profits': profits,
+    }
+
+
+def quarterly_sales(
+    session: Session,
+    start,
+    end,
+    marketplace_id: Optional[int] = None,
+) -> Dict[str, List]:
+    """
+    Retorna vendas agrupadas por trimestre.
+    """
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+
+    rows = (
+        query.filter(Sale.status_pedido.in_(list(VALID_STATUSES)))
+        .with_entities(
+            Sale.data_venda,
+            func.coalesce(func.sum(Sale.valor_total_venda), 0).label('total'),
+        )
+        .group_by(Sale.data_venda)
+        .all()
+    )
+
+    # Agrupar por trimestre
+    quarterly_data: Dict[Tuple[int, int], Decimal] = defaultdict(lambda: Decimal(0))
+
+    for data_venda, total in rows:
+        year = data_venda.year
+        quarter = (data_venda.month - 1) // 3 + 1  # 1-4
+        total_dec = total if isinstance(total, Decimal) else Decimal(total or 0)
+        quarterly_data[(year, quarter)] += total_dec
+
+    # Ordenar e formatar
+    sorted_quarters = sorted(quarterly_data.keys())
+    labels = [f"Q{q}/{y}" for y, q in sorted_quarters]
+    values = [float(quarterly_data[key].quantize(Decimal('0.01'))) for key in sorted_quarters]
+
+    return {
+        'labels': labels,
+        'values': values,
+    }

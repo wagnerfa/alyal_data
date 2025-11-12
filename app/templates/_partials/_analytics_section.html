@@ -1,0 +1,25 @@
+{#
+    Componente de Seção de Analytics
+    Uso: {% include '_partials/_analytics_section.html' with context %}
+
+    Parâmetros:
+    - section_icon: Emoji ou ícone da seção
+    - section_title: Título da seção
+    - section_description: Descrição opcional
+    - section_id: ID único para a seção (opcional)
+#}
+
+<div class="analytics-section" {% if section_id %}id="{{ section_id }}"{% endif %}>
+    <div class="section-header">
+        <h2>
+            {% if section_icon %}<span class="section-icon">{{ section_icon }}</span>{% endif %}
+            {{ section_title }}
+        </h2>
+        {% if section_description %}
+        <p class="section-description">{{ section_description }}</p>
+        {% endif %}
+    </div>
+    <div class="section-grid {{ section_grid_class|default('') }}">
+        {% block section_content %}{% endblock %}
+    </div>
+</div>
