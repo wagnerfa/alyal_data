@@ -42,6 +42,7 @@
                 {% if current_user.is_manager() %}
                     {# Menu para Gestores #}
                     <li><a href="{{ url_for('dashboard.manager_dashboard', **({'company_id': current_company_id} if current_company_id else {})) }}">Dashboard</a></li>
+                    <li><a href="{{ url_for('dashboard.consolidated_dashboard', **({'company_id': current_company_id} if current_company_id else {})) }}">Visão Consolidada</a></li>
                     <li><a href="{{ url_for('dashboard.abc_view', **({'company_id': current_company_id} if current_company_id else {})) }}">Produtos (ABC)</a></li>
                     <li><a href="{{ url_for('dashboard.status_view', **({'company_id': current_company_id} if current_company_id else {})) }}">Status</a></li>
                     <li><a href="{{ url_for('dashboard.analytics_dashboard', **({'company_id': current_company_id} if current_company_id else {})) }}">Análises Avançadas</a></li>
@@ -51,6 +52,7 @@
                 {% else %}
                     {# Menu para Clientes #}
                     <li><a href="{{ url_for('dashboard.user_dashboard') }}">Dashboard</a></li>
+                    <li><a href="{{ url_for('dashboard.consolidated_dashboard') }}">Visão Consolidada</a></li>
                     <li><a href="{{ url_for('dashboard.abc_view') }}">Produtos (ABC)</a></li>
                     <li><a href="{{ url_for('dashboard.status_view') }}">Status</a></li>
                     <li><a href="{{ url_for('dashboard.analytics_dashboard') }}">Análises Avançadas</a></li>

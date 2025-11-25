@@ -1267,3 +1267,310 @@ def quarterly_sales(
         'labels': labels,
         'values': values,
     }
+
+
+# ========================================
+# NOVAS ANÁLISES AVANÇADAS
+# ========================================
+
+
+def pareto_analysis(
+    session: Session,
+    start,
+    end,
+    marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
+) -> Dict[str, any]:
+    """
+    Análise de Pareto (80/20) - Identifica produtos que representam 80% da receita.
+
+    Retorna:
+        - products: lista de dicts com sku, nome, receita, % individual, % acumulado
+        - labels: lista de SKUs para gráfico
+        - revenues: valores de receita
+        - cumulative: percentuais acumulados
+        - pareto_line: linha de referência 80%
+    """
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
+
+    rows = (
+        query.with_entities(
+            Sale.sku,
+            func.max(Sale.nome_produto).label('nome_produto'),
+            Sale.status_pedido,
+            func.coalesce(func.sum(Sale.valor_total_venda), 0).label('total')
+        )
+        .group_by(Sale.sku, Sale.status_pedido)
+        .all()
+    )
+
+    # Agregar por SKU (somando todos os status válidos)
+    aggregated: Dict[str, Dict] = {}
+    for sku, nome_produto, status_value, total in rows:
+        normalized = _normalize_status(status_value)
+        if normalized not in VALID_STATUSES:
+            continue
+        total_decimal = total if isinstance(total, Decimal) else Decimal(total or 0)
+        if sku not in aggregated:
+            aggregated[sku] = {
+                'nome_produto': nome_produto,
+                'total': Decimal(0),
+            }
+        aggregated[sku]['total'] += total_decimal
+
+    # Ordenar por receita (maior para menor)
+    sorted_items = sorted(
+        aggregated.items(),
+        key=lambda item: item[1]['total'],
+        reverse=True,
+    )
+
+    if not sorted_items:
+        return {
+            'products': [],
+            'labels': [],
+            'revenues': [],
+            'cumulative': [],
+            'pareto_line': [],
+        }
+
+    # Calcular total de receita
+    total_revenue = sum(data['total'] for _, data in sorted_items)
+
+    # Calcular percentuais
+    products = []
+    cumulative = Decimal(0)
+    labels = []
+    revenues = []
+    cumulative_pcts = []
+
+    for sku, data in sorted_items:
+        receita = data['total']
+        pct_individual = (receita / total_revenue * 100) if total_revenue else Decimal(0)
+        cumulative += pct_individual
+
+        # Marcar se está na zona 80/20
+        is_pareto = cumulative <= 80
+
+        products.append({
+            'sku': sku,
+            'nome_produto': data['nome_produto'],
+            'receita': float(receita.quantize(Decimal('0.01'))),
+            'pct_individual': float(pct_individual.quantize(Decimal('0.01'))),
+            'pct_acumulado': float(cumulative.quantize(Decimal('0.01'))),
+            'is_pareto': is_pareto,
+        })
+
+        # Dados para gráfico (limitado aos top 20 para visualização)
+        if len(labels) < 20:
+            labels.append(sku)
+            revenues.append(float(receita.quantize(Decimal('0.01'))))
+            cumulative_pcts.append(float(cumulative.quantize(Decimal('0.01'))))
+
+    # Linha de referência 80%
+    pareto_line = [80] * len(labels)
+
+    return {
+        'products': products,
+        'labels': labels,
+        'revenues': revenues,
+        'cumulative': cumulative_pcts,
+        'pareto_line': pareto_line,
+    }
+
+
+def sales_with_moving_average(
+    session: Session,
+    start,
+    end,
+    marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
+) -> Dict[str, List]:
+    """
+    Análise de tendências com média móvel de 7 e 30 dias.
+
+    Retorna faturamento diário com médias móveis calculadas.
+    """
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
+
+    rows = (
+        query.with_entities(
+            Sale.data_venda,
+            Sale.status_pedido,
+            func.coalesce(func.sum(Sale.valor_total_venda), 0).label('total')
+        )
+        .group_by(Sale.data_venda, Sale.status_pedido)
+        .order_by(Sale.data_venda.asc())
+        .all()
+    )
+
+    # Agregar por data (somando status válidos)
+    daily_sales: Dict[date, Decimal] = defaultdict(lambda: Decimal(0))
+    for data_venda, status_value, total in rows:
+        normalized = _normalize_status(status_value)
+        if normalized not in VALID_STATUSES:
+            continue
+        total_decimal = total if isinstance(total, Decimal) else Decimal(total or 0)
+        daily_sales[data_venda] += total_decimal
+
+    if not daily_sales:
+        return {
+            'labels': [],
+            'values': [],
+            'ma7': [],
+            'ma30': [],
+        }
+
+    # Ordenar por data
+    sorted_dates = sorted(daily_sales.keys())
+
+    labels = []
+    values = []
+    ma7_values = []
+    ma30_values = []
+
+    for i, current_date in enumerate(sorted_dates):
+        labels.append(current_date.isoformat())
+        value = float(daily_sales[current_date].quantize(Decimal('0.01')))
+        values.append(value)
+
+        # Calcular MA7 (média dos últimos 7 dias)
+        start_idx_7 = max(0, i - 6)
+        window_7 = [daily_sales[sorted_dates[j]] for j in range(start_idx_7, i + 1)]
+        ma7 = sum(window_7) / len(window_7) if window_7 else Decimal(0)
+        ma7_values.append(float(ma7.quantize(Decimal('0.01'))))
+
+        # Calcular MA30 (média dos últimos 30 dias)
+        start_idx_30 = max(0, i - 29)
+        window_30 = [daily_sales[sorted_dates[j]] for j in range(start_idx_30, i + 1)]
+        ma30 = sum(window_30) / len(window_30) if window_30 else Decimal(0)
+        ma30_values.append(float(ma30.quantize(Decimal('0.01'))))
+
+    return {
+        'labels': labels,
+        'values': values,
+        'ma7': ma7_values,
+        'ma30': ma30_values,
+    }
+
+
+def monthly_growth_analysis(
+    session: Session,
+    start,
+    end,
+    marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
+) -> Dict[str, List]:
+    """
+    Análise de crescimento mensal com variação percentual mês a mês.
+
+    Retorna meses, receita e % de crescimento.
+    """
+    monthly_data = monthly_revenue_totals(session, start, end, marketplace_id, company_id)
+    labels = monthly_data['labels']
+    revenues = monthly_data['values']
+
+    if not revenues:
+        return {
+            'labels': [],
+            'revenues': [],
+            'growth_pct': [],
+        }
+
+    # Calcular crescimento percentual
+    growth_pct = []
+    for i, revenue in enumerate(revenues):
+        if i == 0:
+            growth_pct.append(0.0)
+        else:
+            prev_revenue = revenues[i - 1]
+            if prev_revenue > 0:
+                growth = ((revenue - prev_revenue) / prev_revenue) * 100
+                growth_pct.append(round(growth, 2))
+            else:
+                growth_pct.append(0.0)
+
+    return {
+        'labels': labels,
+        'revenues': revenues,
+        'growth_pct': growth_pct,
+    }
+
+
+def sales_by_shipping_method(
+    session: Session,
+    start,
+    end,
+    marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
+) -> Dict[str, List]:
+    """
+    Análise de vendas por forma de entrega.
+
+    Retorna métodos de envio, contagem, receita e % de participação.
+    """
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
+
+    rows = (
+        query.filter(Sale.forma_entrega.isnot(None))
+        .with_entities(
+            Sale.forma_entrega,
+            func.count(Sale.id).label('count'),
+            func.coalesce(func.sum(Sale.valor_total_venda), 0).label('revenue'),
+            Sale.status_pedido,
+        )
+        .group_by(Sale.forma_entrega, Sale.status_pedido)
+        .all()
+    )
+
+    # Agregar por forma de entrega
+    shipping_data: Dict[str, Dict] = {}
+    for method, count, revenue, status_value in rows:
+        normalized = _normalize_status(status_value)
+        if normalized not in VALID_STATUSES:
+            continue
+
+        if method not in shipping_data:
+            shipping_data[method] = {'count': 0, 'revenue': Decimal(0)}
+
+        shipping_data[method]['count'] += int(count)
+        revenue_decimal = revenue if isinstance(revenue, Decimal) else Decimal(revenue or 0)
+        shipping_data[method]['revenue'] += revenue_decimal
+
+    if not shipping_data:
+        return {
+            'labels': [],
+            'counts': [],
+            'revenues': [],
+            'percentages': [],
+        }
+
+    # Calcular total de receita
+    total_revenue = sum(data['revenue'] for data in shipping_data.values())
+
+    # Ordenar por receita (maior para menor)
+    sorted_methods = sorted(
+        shipping_data.items(),
+        key=lambda x: x[1]['revenue'],
+        reverse=True
+    )
+
+    labels = []
+    counts = []
+    revenues = []
+    percentages = []
+
+    for method, data in sorted_methods:
+        revenue_pct = (data['revenue'] / total_revenue * 100) if total_revenue else Decimal(0)
+
+        labels.append(method)
+        counts.append(data['count'])
+        revenues.append(float(data['revenue'].quantize(Decimal('0.01'))))
+        percentages.append(float(revenue_pct.quantize(Decimal('0.01'))))
+
+    return {
+        'labels': labels,
+        'counts': counts,
+        'revenues': revenues,
+        'percentages': percentages,
+    }

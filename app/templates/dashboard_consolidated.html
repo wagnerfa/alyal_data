@@ -1,0 +1,407 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Consolidado - Alyal{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <h1>📊 Dashboard Consolidado</h1>
+        <p class="header-subtitle">Visão geral das principais métricas</p>
+    </div>
+
+    {% set action = url_for('dashboard.consolidated_dashboard') %}
+    {% include '_partials/_filters.html' %}
+
+    <!-- Grid 2x3 com 6 Análises -->
+    <div class="consolidated-grid">
+        <!-- 1. Faturamento Diário com Tendência -->
+        <div class="mini-chart-card">
+            <h3>💰 Faturamento Diário</h3>
+            <p class="card-description">Valores diários com média móvel de 7 dias</p>
+            <div class="mini-chart-container">
+                <canvas id="dailySalesChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 2. Top 5 Produtos -->
+        <div class="mini-chart-card">
+            <h3>🏆 Top 5 Produtos</h3>
+            <p class="card-description">Produtos com maior faturamento</p>
+            <div class="mini-chart-container">
+                <canvas id="top5ProductsChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 3. Vendas por Hora -->
+        <div class="mini-chart-card">
+            <h3>🕐 Vendas por Hora</h3>
+            <p class="card-description">Distribuição de vendas ao longo do dia</p>
+            <div class="mini-chart-container">
+                <canvas id="hourlySalesChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 4. Vendas por Dia da Semana -->
+        <div class="mini-chart-card">
+            <h3>📅 Vendas por Dia</h3>
+            <p class="card-description">Performance por dia da semana</p>
+            <div class="mini-chart-container">
+                <canvas id="weeklySalesChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 5. Top 5 Estados -->
+        <div class="mini-chart-card">
+            <h3>🗺️ Top 5 Estados</h3>
+            <p class="card-description">Estados com maior faturamento</p>
+            <div class="mini-chart-container">
+                <canvas id="topStatesChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 6. Faixa de Preço -->
+        <div class="mini-chart-card">
+            <h3>💵 Distribuição por Preço</h3>
+            <p class="card-description">Baixo (&lt;R$50), Médio (R$50-200), Alto (&gt;R$200)</p>
+            <div class="mini-chart-container">
+                <canvas id="priceRangeChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Grid 2x3 Responsivo */
+.consolidated-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+@media (min-width: 1200px) {
+    .consolidated-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.mini-chart-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.mini-chart-card h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.mini-chart-card .card-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0 0 1rem 0;
+}
+
+.mini-chart-container {
+    height: 220px;
+    position: relative;
+}
+
+.header-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const themeStyles = getComputedStyle(document.documentElement);
+    const textColor = (themeStyles.getPropertyValue('--text-primary') || '#2c3e50').trim();
+    const surfaceColor = (themeStyles.getPropertyValue('--card-bg') || '#ffffff').trim();
+    const borderTone = (themeStyles.getPropertyValue('--card-border') || 'rgba(0, 0, 0, 0.1)').trim();
+    const formatCurrency = (value) => `R$ ${Number(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+
+    if (window.Chart) {
+        Chart.defaults.color = textColor;
+        Chart.defaults.font.size = 11;
+    }
+
+    const baseOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false,
+                position: 'bottom',
+                labels: {
+                    color: textColor,
+                    font: { size: 10 },
+                    boxWidth: 12,
+                    padding: 8
+                }
+            },
+            tooltip: {
+                mode: 'index',
+                intersect: false,
+                titleFont: { size: 11 },
+                bodyFont: { size: 10 }
+            }
+        },
+        scales: {
+            x: {
+                ticks: {
+                    color: textColor,
+                    font: { size: 10 },
+                    maxRotation: 45,
+                    minRotation: 0
+                },
+                grid: { color: borderTone }
+            },
+            y: {
+                ticks: {
+                    color: textColor,
+                    font: { size: 10 }
+                },
+                grid: { color: borderTone }
+            }
+        },
+        layout: { padding: 5 }
+    };
+
+    // 1. Faturamento Diário
+    const dailyLabels = {{ daily_labels|tojson }};
+    const dailyValues = {{ daily_values|tojson }};
+    const dailyMA7 = {{ daily_ma7|tojson }};
+    const dailyCtx = document.getElementById('dailySalesChart');
+    if (dailyCtx && dailyValues.length) {
+        // Mostrar apenas últimos 30 dias para clareza
+        const maxPoints = 30;
+        const sliceStart = Math.max(0, dailyLabels.length - maxPoints);
+        new Chart(dailyCtx, {
+            type: 'line',
+            data: {
+                labels: dailyLabels.slice(sliceStart),
+                datasets: [
+                    {
+                        label: 'Faturamento',
+                        data: dailyValues.slice(sliceStart),
+                        borderColor: '#34BFA3',
+                        backgroundColor: 'rgba(52, 191, 163, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        pointRadius: 1
+                    },
+                    {
+                        label: 'Média 7 dias',
+                        data: dailyMA7.slice(sliceStart),
+                        borderColor: '#FF6B6B',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        tension: 0.3,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                ...baseOptions,
+                plugins: {
+                    ...baseOptions.plugins,
+                    legend: { display: true },
+                    tooltip: {
+                        ...baseOptions.plugins.tooltip,
+                        callbacks: {
+                            label: (context) => `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 2. Top 5 Produtos
+    const top5Labels = {{ top5_labels|tojson }};
+    const top5Values = {{ top5_values|tojson }};
+    const top5Ctx = document.getElementById('top5ProductsChart');
+    if (top5Ctx && top5Values.length) {
+        new Chart(top5Ctx, {
+            type: 'bar',
+            data: {
+                labels: top5Labels.map(l => l.length > 15 ? l.substring(0, 15) + '...' : l),
+                datasets: [{
+                    data: top5Values,
+                    backgroundColor: [
+                        'rgba(52, 191, 163, 0.8)',
+                        'rgba(91, 155, 213, 0.8)',
+                        'rgba(246, 194, 62, 0.8)',
+                        'rgba(128, 130, 166, 0.8)',
+                        'rgba(237, 125, 49, 0.8)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                ...baseOptions,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        ...baseOptions.scales.x,
+                        ticks: {
+                            ...baseOptions.scales.x.ticks,
+                            callback: (value) => formatCurrency(value)
+                        }
+                    },
+                    y: {
+                        ...baseOptions.scales.y
+                    }
+                },
+                plugins: {
+                    ...baseOptions.plugins,
+                    tooltip: {
+                        ...baseOptions.plugins.tooltip,
+                        callbacks: {
+                            label: (context) => formatCurrency(context.parsed.x)
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 3. Vendas por Hora
+    const hourlyLabels = {{ hourly_labels|tojson }};
+    const hourlyValues = {{ hourly_values|tojson }};
+    const hourlyCtx = document.getElementById('hourlySalesChart');
+    if (hourlyCtx && hourlyValues.length) {
+        new Chart(hourlyCtx, {
+            type: 'bar',
+            data: {
+                labels: hourlyLabels,
+                datasets: [{
+                    data: hourlyValues,
+                    backgroundColor: 'rgba(91, 155, 213, 0.7)',
+                    borderColor: '#5B9BD5',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                ...baseOptions,
+                scales: {
+                    x: {
+                        ...baseOptions.scales.x,
+                        ticks: {
+                            ...baseOptions.scales.x.ticks,
+                            maxRotation: 0,
+                            callback: (value, index) => index % 3 === 0 ? hourlyLabels[index] : ''
+                        }
+                    },
+                    y: baseOptions.scales.y
+                }
+            }
+        });
+    }
+
+    // 4. Vendas por Dia da Semana
+    const weeklyLabels = {{ weekly_labels|tojson }};
+    const weeklyValues = {{ weekly_values|tojson }};
+    const weeklyCtx = document.getElementById('weeklySalesChart');
+    if (weeklyCtx && weeklyValues.length) {
+        new Chart(weeklyCtx, {
+            type: 'bar',
+            data: {
+                labels: weeklyLabels,
+                datasets: [{
+                    data: weeklyValues,
+                    backgroundColor: 'rgba(246, 194, 62, 0.7)',
+                    borderColor: '#F6C23E',
+                    borderWidth: 1
+                }]
+            },
+            options: baseOptions
+        });
+    }
+
+    // 5. Top 5 Estados
+    const statesLabels = {{ states_labels|tojson }};
+    const statesRevenues = {{ states_revenues|tojson }};
+    const statesCtx = document.getElementById('topStatesChart');
+    if (statesCtx && statesRevenues.length) {
+        new Chart(statesCtx, {
+            type: 'bar',
+            data: {
+                labels: statesLabels,
+                datasets: [{
+                    data: statesRevenues,
+                    backgroundColor: 'rgba(128, 130, 166, 0.7)',
+                    borderColor: '#8082A6',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                ...baseOptions,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        ...baseOptions.scales.x,
+                        ticks: {
+                            ...baseOptions.scales.x.ticks,
+                            callback: (value) => formatCurrency(value)
+                        }
+                    },
+                    y: baseOptions.scales.y
+                },
+                plugins: {
+                    ...baseOptions.plugins,
+                    tooltip: {
+                        ...baseOptions.plugins.tooltip,
+                        callbacks: {
+                            label: (context) => formatCurrency(context.parsed.x)
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 6. Faixa de Preço
+    const priceLabels = {{ price_labels|tojson }};
+    const priceRevenues = {{ price_revenues|tojson }};
+    const priceCtx = document.getElementById('priceRangeChart');
+    if (priceCtx && priceRevenues.length) {
+        new Chart(priceCtx, {
+            type: 'doughnut',
+            data: {
+                labels: priceLabels,
+                datasets: [{
+                    data: priceRevenues,
+                    backgroundColor: [
+                        'rgba(246, 194, 62, 0.8)',
+                        'rgba(128, 130, 166, 0.8)',
+                        'rgba(52, 191, 163, 0.8)'
+                    ],
+                    borderColor: surfaceColor,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                ...baseOptions,
+                plugins: {
+                    ...baseOptions.plugins,
+                    legend: { display: true, position: 'bottom' },
+                    tooltip: {
+                        ...baseOptions.plugins.tooltip,
+                        callbacks: {
+                            label: (context) => `${context.label}: ${formatCurrency(context.parsed)}`
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}
