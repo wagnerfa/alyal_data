@@ -14,14 +14,18 @@ from app.services.metrics import (
     cohort_analysis,
     get_data_boundaries,
     get_kpis,
+    monthly_growth_analysis,
     monthly_revenue_totals,
     monthly_sales_counts,
+    pareto_analysis,
     products_by_price_range,
     sales_by_city,
     sales_by_day_of_week,
     sales_by_hour_of_day,
+    sales_by_shipping_method,
     sales_by_state,
     sales_timeseries,
+    sales_with_moving_average,
     shipping_performance,
     status_breakdown,
     top_products_by_revenue,
@@ -709,4 +713,75 @@ def analytics_dashboard():
         cohort_period_labels=cohort_data['period_labels'],
         cohort_matrix=cohort_data['retention_matrix'],
         cohort_sizes=cohort_data['cohort_sizes'],
+    )
+
+@dashboard_bp.route('/consolidated')
+@login_required
+def consolidated_dashboard():
+    """
+    Dashboard consolidado com visão geral de 6 análises em grid 2x3.
+    """
+    start_date, end_date, marketplace_id, company_id = _get_filters_from_request()
+    marketplaces = Marketplace.query.order_by(Marketplace.nome.asc()).all()
+
+    # Para gestores, mostrar seletor de empresa; para usuários, usar próprio company_id
+    if current_user.is_manager():
+        companies = User.query.filter_by(role='user').order_by(User.username.asc()).all()
+        company_ids = [company.id for company in companies]
+        if company_id not in company_ids and company_ids:
+            company_id = company_ids[0]
+    else:
+        company_id = current_user.id
+        companies = []
+
+    # Verificar dados e ajustar período se necessário
+    kpis = get_kpis(db.session, start_date, end_date, marketplace_id, company_id)
+    if kpis['faturamento'] == 0.0 and kpis['pedidos_totais'] == 0.0:
+        min_date, max_date = get_data_boundaries(db.session, marketplace_id, company_id)
+        if min_date and max_date:
+            if min_date > max_date:
+                min_date, max_date = max_date, min_date
+            start_date, end_date = min_date, max_date
+
+    # Coletar todas as análises
+    # 1. Faturamento diário com tendência
+    daily_sales = sales_with_moving_average(db.session, start_date, end_date, marketplace_id, company_id)
+
+    # 2. Top 5 produtos (ABC)
+    top_5_products = top_products_by_revenue(db.session, start_date, end_date, marketplace_id, company_id, limit=5)
+
+    # 3. Vendas por hora do dia
+    hourly_sales = sales_by_hour_of_day(db.session, start_date, end_date, marketplace_id, company_id)
+
+    # 4. Vendas por dia da semana
+    weekly_sales = sales_by_day_of_week(db.session, start_date, end_date, marketplace_id, company_id)
+
+    # 5. Top 5 estados
+    top_states = sales_by_state(db.session, start_date, end_date, marketplace_id, company_id, limit=5)
+
+    # 6. Faixa de preço
+    price_ranges = products_by_price_range(db.session, start_date, end_date, marketplace_id, company_id)
+
+    return render_template(
+        'dashboard_consolidated.html',
+        marketplaces=marketplaces,
+        companies=companies if current_user.is_manager() else [],
+        start_date=start_date,
+        end_date=end_date,
+        selected_marketplace=marketplace_id,
+        selected_company=company_id,
+        # Dados para os 6 gráficos
+        daily_labels=daily_sales['labels'],
+        daily_values=daily_sales['values'],
+        daily_ma7=daily_sales['ma7'],
+        top5_labels=top_5_products['labels'],
+        top5_values=top_5_products['values'],
+        hourly_labels=hourly_sales['labels'],
+        hourly_values=hourly_sales['values'],
+        weekly_labels=weekly_sales['labels'],
+        weekly_values=weekly_sales['values'],
+        states_labels=top_states['labels'],
+        states_revenues=top_states['revenues'],
+        price_labels=price_ranges['labels'],
+        price_revenues=price_ranges['revenues'],
     )
