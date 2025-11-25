@@ -167,9 +167,10 @@ def _save_logo_file(storage, previous=None):
 
 
 @dashboard_bp.route('/')
-@login_required
 def dashboard_index():
-    return _redirect_to_role_dashboard()
+    if current_user.is_authenticated:
+        return _redirect_to_role_dashboard()
+    return render_template('home.html')
 
 
 @dashboard_bp.route('/companies', methods=['GET', 'POST'])

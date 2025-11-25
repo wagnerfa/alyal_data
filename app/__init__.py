@@ -27,7 +27,9 @@ def create_app():
     from app.auth import auth_bp
     from app.dashboard import dashboard_bp
     from app.data import data_bp
+    from app.main import main_bp
 
+    app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(data_bp)
