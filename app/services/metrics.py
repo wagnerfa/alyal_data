@@ -422,12 +422,13 @@ def sales_by_hour_of_day(
     start,
     end,
     marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
 ) -> Dict[str, List[float]]:
     """
     Retorna vendas agrupadas por hora do dia (0-23).
     Útil para identificar picos de vendas ao longo do dia.
     """
-    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
 
     rows = (
         query.with_entities(
@@ -459,12 +460,13 @@ def sales_by_day_of_week(
     start,
     end,
     marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
 ) -> Dict[str, List[float]]:
     """
     Retorna vendas agrupadas por dia da semana.
     0 = Segunda, 6 = Domingo
     """
-    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
 
     rows = (
         query.with_entities(
@@ -497,11 +499,12 @@ def monthly_trend_with_growth(
     start,
     end,
     marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
 ) -> Dict[str, List]:
     """
     Retorna faturamento mensal com percentual de crescimento.
     """
-    monthly_data = monthly_revenue_totals(session, start, end, marketplace_id)
+    monthly_data = monthly_revenue_totals(session, start, end, marketplace_id, company_id)
     labels = monthly_data['labels']
     values = monthly_data['values']
 
@@ -532,12 +535,13 @@ def sales_by_state(
     start,
     end,
     marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
     limit: int = 10,
 ) -> Dict[str, List]:
     """
     Retorna vendas agrupadas por estado (top N).
     """
-    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
 
     rows = (
         query.filter(Sale.estado_comprador.isnot(None))
@@ -587,12 +591,13 @@ def sales_by_city(
     start,
     end,
     marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
     limit: int = 15,
 ) -> Dict[str, List]:
     """
     Retorna vendas agrupadas por cidade (top N).
     """
-    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
 
     rows = (
         query.filter(Sale.cidade_comprador.isnot(None))
@@ -647,11 +652,12 @@ def products_by_price_range(
     start,
     end,
     marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
 ) -> Dict[str, List]:
     """
     Retorna distribuição de produtos por faixa de preço.
     """
-    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
 
     rows = (
         query.filter(Sale.faixa_preco.isnot(None))
@@ -701,12 +707,13 @@ def top_products_with_margin(
     start,
     end,
     marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
     limit: int = 10,
 ) -> List[Dict]:
     """
     Retorna produtos com melhor margem de lucro.
     """
-    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
 
     rows = (
         query.filter(Sale.margem_percentual.isnot(None))
@@ -777,11 +784,12 @@ def shipping_performance(
     start,
     end,
     marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
 ) -> Dict[str, float]:
     """
     Retorna métricas de desempenho de envio.
     """
-    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
 
     rows = (
         query.filter(Sale.status_pedido.in_(list(VALID_STATUSES)))
@@ -835,6 +843,7 @@ def calculate_rfm_analysis(
     start,
     end,
     marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
 ) -> List[Dict]:
     """
     Análise RFM (Recency, Frequency, Monetary) dos clientes.
@@ -843,7 +852,7 @@ def calculate_rfm_analysis(
     - Frequency: número de compras
     - Monetary: valor total gasto
     """
-    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
 
     # Buscar apenas vendas válidas com comprador identificado
     rows = (
@@ -982,13 +991,14 @@ def cohort_analysis(
     start,
     end,
     marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
 ) -> Dict[str, any]:
     """
     Análise de Cohort baseada no mês da primeira compra.
     Retorna matriz de retenção mostrando quantos clientes de cada cohort
     continuaram comprando nos meses seguintes.
     """
-    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
 
     # Buscar vendas válidas com comprador identificado
     rows = (
@@ -1087,12 +1097,13 @@ def revenue_composition(
     start,
     end,
     marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
 ) -> Dict[str, float]:
     """
     Retorna composição detalhada da receita e custos.
     Útil para gráficos waterfall mostrando o fluxo do lucro.
     """
-    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
 
     rows = (
         query.filter(Sale.status_pedido.in_(list(VALID_STATUSES)))
@@ -1162,11 +1173,12 @@ def margin_evolution(
     start,
     end,
     marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
 ) -> Dict[str, List]:
     """
     Retorna evolução da margem de lucro ao longo do tempo (mensal).
     """
-    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
 
     rows = (
         query.filter(Sale.status_pedido.in_(list(VALID_STATUSES)))
@@ -1220,11 +1232,12 @@ def quarterly_sales(
     start,
     end,
     marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
 ) -> Dict[str, List]:
     """
     Retorna vendas agrupadas por trimestre.
     """
-    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id)
+    query = _apply_common_filters(session.query(Sale), start, end, marketplace_id, company_id)
 
     rows = (
         query.filter(Sale.status_pedido.in_(list(VALID_STATUSES)))
