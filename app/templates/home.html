@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Alyal Insights - Inteligência em Vendas{% endblock %}
+
+{% block content %}
+<section class="landing">
+    <div class="landing-hero">
+        <div class="hero-text">
+            <span class="hero-badge">Inteligência para e-commerce</span>
+            <h1>Transforme dados em decisões com o Alyal Insights</h1>
+            <p>
+                Acompanhe vendas, margens e performance logística em tempo real com um painel elegante
+                e otimizado para gestores e equipes comerciais.
+            </p>
+            <div class="hero-actions">
+                <a class="btn btn-primary" href="{{ url_for('auth.login') }}">Fazer login</a>
+                <a class="btn btn-secondary" href="#recursos">Conhecer recursos</a>
+            </div>
+            <div class="hero-highlights">
+                <div class="highlight-item">
+                    <div class="highlight-icon">📊</div>
+                    <div>
+                        <p class="highlight-label">KPIs em tempo real</p>
+                        <p class="highlight-value">Faturamento, pedidos e mix de produtos</p>
+                    </div>
+                </div>
+                <div class="highlight-item">
+                    <div class="highlight-icon">🚚</div>
+                    <div>
+                        <p class="highlight-label">Operação mais ágil</p>
+                        <p class="highlight-value">Lead time, cancelamentos e frete monitorados</p>
+                    </div>
+                </div>
+                <div class="highlight-item">
+                    <div class="highlight-icon">🤝</div>
+                    <div>
+                        <p class="highlight-label">Gestão por empresa</p>
+                        <p class="highlight-value">Multi-contas com personalização visual</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="hero-panel">
+            <div class="panel-card">
+                <div class="panel-header">
+                    <p>Visão geral</p>
+                    <span class="panel-pill">Atualizado</span>
+                </div>
+                <div class="panel-metric">
+                    <p class="metric-label">Faturamento do mês</p>
+                    <p class="metric-value">R$ 428.900</p>
+                    <p class="metric-subtext">+12,4% vs. mês anterior</p>
+                </div>
+                <div class="panel-grid">
+                    <div class="panel-item">
+                        <p class="panel-label">Pedidos válidos</p>
+                        <p class="panel-number">5.842</p>
+                        <span class="panel-trend positive">+8,1%</span>
+                    </div>
+                    <div class="panel-item">
+                        <p class="panel-label">Ticket médio</p>
+                        <p class="panel-number">R$ 73,40</p>
+                        <span class="panel-trend neutral">estável</span>
+                    </div>
+                    <div class="panel-item">
+                        <p class="panel-label">Taxa de cancelamento</p>
+                        <p class="panel-number">1,9%</p>
+                        <span class="panel-trend positive">-0,6 p.p.</span>
+                    </div>
+                    <div class="panel-item">
+                        <p class="panel-label">NPS logístico</p>
+                        <p class="panel-number">92</p>
+                        <span class="panel-trend positive">+4 pts</span>
+                    </div>
+                </div>
+                <div class="panel-footer">
+                    <p>Importe suas vendas, acompanhe indicadores e planeje ações com poucos cliques.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="recursos" class="landing-grid">
+        <div class="card feature-card">
+            <div class="feature-icon">📈</div>
+            <h3>Dashboards inteligentes</h3>
+            <p>Visualizações otimizadas para gestores e analistas, com filtros por período, marketplace e empresa.</p>
+        </div>
+        <div class="card feature-card">
+            <div class="feature-icon">🧠</div>
+            <h3>Análises avançadas</h3>
+            <p>Curvas ABC, margens e RFM combinadas para priorizar produtos e clientes de maior valor.</p>
+        </div>
+        <div class="card feature-card">
+            <div class="feature-icon">⚙️</div>
+            <h3>Operação prática</h3>
+            <p>Upload guiado de dados, usuários pré-configurados e troca rápida entre contas monitoradas.</p>
+        </div>
+    </div>
+</section>
+{% endblock %}
