@@ -13,6 +13,12 @@ from sqlalchemy.orm import joinedload
 from app import db
 from app.data import data_bp
 from app.models import Marketplace, Sale, User
+from app.services.marketplace_adapters import (
+    MercadoLivreAdapter,
+    ShopeeAdapter,
+    detect_marketplace,
+    detect_encoding,
+)
 
 
 MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50MB (increased for large CSV files)
@@ -389,7 +395,7 @@ def upload_submit():
         )
 
     if not file or file.filename == "":
-        flash("Envie um arquivo CSV válido.", "error")
+        flash("Envie um arquivo do marketplace (CSV ou XLSX).", "error")
         return render_template(
             "data_upload.html",
             marketplaces=marketplaces,
@@ -398,8 +404,10 @@ def upload_submit():
             selected_company=selected_company_id,
         )
 
-    if not file.filename.lower().endswith(".csv"):
-        flash("O arquivo deve estar no formato .csv.", "error")
+    # Detectar tipo de arquivo
+    file_extension = file.filename.lower().split('.')[-1]
+    if file_extension not in ['csv', 'xlsx', 'xls']:
+        flash("Formato de arquivo não suportado. Use CSV (Mercado Livre) ou XLSX (Shopee).", "error")
         return render_template(
             "data_upload.html",
             marketplaces=marketplaces,
@@ -432,140 +440,63 @@ def upload_submit():
             selected_company=selected_company_id,
         )
 
-    text_stream = open_text_stream(raw_bytes)
-    sample = text_stream.read(2048)
-    delimiter = detect_delimiter(sample)
-    text_stream.seek(0)
-    reader = csv.DictReader(text_stream, delimiter=delimiter)
-
-    if not reader.fieldnames:
-        flash("Não foi possível identificar o cabeçalho do CSV.", "error")
-        return render_template(
-            "data_upload.html",
-            marketplaces=marketplaces,
-            companies=companies,
-            selected_marketplace=marketplace.id,
-            selected_company=selected_company_id,
-        )
-
-    header_map: Dict[str, str] = {}
-    for original_header in reader.fieldnames:
-        normalized = normalize_header(original_header)
-        internal_name = map_header(normalized)
-        if internal_name and internal_name not in header_map:
-            header_map[internal_name] = original_header
-
-    missing_columns = sorted(REQUIRED_COLUMNS - set(header_map.keys()))
-    if missing_columns:
-        missing_str = ", ".join(missing_columns)
-        flash(f"CSV inválido. Colunas ausentes: {missing_str}.", "error")
-        return render_template(
-            "data_upload.html",
-            marketplaces=marketplaces,
-            companies=companies,
-            selected_marketplace=marketplace.id,
-            selected_company=selected_company_id,
-        )
-
-    sales_to_insert = []
-    errors = []
-    total_rows = 0
-
-    for line_number, row in enumerate(reader, start=2):
-        total_rows += 1
-        line_data = {key: (row.get(source) or "").strip() for key, source in header_map.items()}
-
-        try:
-            # Campos obrigatórios
-            nome_produto = line_data["nome_produto"].strip()
-            sku = line_data["sku"].strip()
-            if not nome_produto:
-                raise ValueError("nome_produto vazio")
-            if not sku:
-                raise ValueError("sku vazio")
-
-            status = normalize_status(line_data["status_pedido"])
-            if not status:
-                raise ValueError("status_pedido inválido")
-
-            data_venda = parse_date(line_data["data_venda"])
-            valor_total = parse_decimal_ptbr_en(line_data["valor_total_venda"])
-
-            # Novos campos opcionais
-            numero_pedido = line_data.get("numero_pedido", "").strip() or None
-            titulo_anuncio = line_data.get("titulo_anuncio", "").strip() or None
-            numero_anuncio = line_data.get("numero_anuncio", "").strip() or None
-            unidades = parse_int_optional(line_data.get("unidades", ""))
-            comprador = line_data.get("comprador", "").strip() or None
-            cpf_comprador = line_data.get("cpf_comprador", "").strip() or None
-            estado_comprador = line_data.get("estado_comprador", "").strip() or None
-            cidade_comprador = line_data.get("cidade_comprador", "").strip() or None
-            forma_entrega = line_data.get("forma_entrega", "").strip() or None
-
-            # Campos financeiros (converter para Decimal)
-            total_brl = parse_decimal_optional(line_data.get("total_brl", ""))
-            receita_produtos = parse_decimal_optional(line_data.get("receita_produtos", ""))
-            receita_acrescimo_preco = parse_decimal_optional(line_data.get("receita_acrescimo_preco", ""))
-            taxa_parcelamento = parse_decimal_optional(line_data.get("taxa_parcelamento", ""))
-            tarifa_venda_impostos = parse_decimal_optional(line_data.get("tarifa_venda_impostos", ""))
-            receita_envio = parse_decimal_optional(line_data.get("receita_envio", ""))
-            tarifas_envio = parse_decimal_optional(line_data.get("tarifas_envio", ""))
-            custo_envio = parse_decimal_optional(line_data.get("custo_envio", ""))
-            custo_diferencas_peso = parse_decimal_optional(line_data.get("custo_diferencas_peso", ""))
-            cancelamentos_reembolsos = parse_decimal_optional(line_data.get("cancelamentos_reembolsos", ""))
-            preco_unitario = parse_decimal_optional(line_data.get("preco_unitario", ""))
-
-            # Calcular lucro e margem
-            lucro_liquido, margem_percentual = calculate_profit_and_margin(
-                receita_produtos,
-                taxa_parcelamento,
-                tarifa_venda_impostos,
-                custo_envio,
-                custo_diferencas_peso,
-                cancelamentos_reembolsos,
+    # NOVO: Processar arquivo usando adaptadores de marketplace
+    try:
+        # Selecionar adaptador baseado na extensão
+        if file_extension == 'csv':
+            parsed_data, errors = MercadoLivreAdapter.parse_file(raw_bytes)
+            marketplace_detected = 'Mercado Livre'
+        elif file_extension in ['xlsx', 'xls']:
+            parsed_data, errors = ShopeeAdapter.parse_file(raw_bytes)
+            marketplace_detected = 'Shopee'
+        else:
+            flash("Formato de arquivo não suportado.", "error")
+            return render_template(
+                "data_upload.html",
+                marketplaces=marketplaces,
+                companies=companies,
+                selected_marketplace=marketplace.id,
+                selected_company=selected_company_id,
             )
 
-            # Categorizar faixa de preço
-            faixa_preco = categorize_price_range(preco_unitario or valor_total)
+    except Exception as e:
+        flash(f"Erro ao processar arquivo: {str(e)}", "error")
+        return render_template(
+            "data_upload.html",
+            marketplaces=marketplaces,
+            companies=companies,
+            selected_marketplace=marketplace.id,
+            selected_company=selected_company_id,
+        )
+
+    if not parsed_data:
+        flash(f"Nenhum dado válido encontrado no arquivo {marketplace_detected}.", "error")
+        return render_template(
+            "data_upload.html",
+            marketplaces=marketplaces,
+            companies=companies,
+            selected_marketplace=marketplace.id,
+            selected_company=selected_company_id,
+        )
+
+    # Criar objetos Sale a partir dos dados normalizados
+    sales_to_insert = []
+    for row_data in parsed_data:
+        try:
+            # Definir company_id
+            final_company_id = company_id_int if company_id_int else None
 
             sale = Sale(
                 marketplace_id=marketplace.id,
-                company_id=current_user.id if not current_user.is_manager() else None,
-                # Campos originais
-                nome_produto=nome_produto,
-                sku=sku,
-                status_pedido=status,
-                data_venda=data_venda,
-                valor_total_venda=valor_total,
-                # Novos campos
-                numero_pedido=numero_pedido,
-                titulo_anuncio=titulo_anuncio,
-                numero_anuncio=numero_anuncio,
-                unidades=unidades,
-                comprador=comprador,
-                cpf_comprador=cpf_comprador,
-                total_brl=total_brl,
-                receita_produtos=receita_produtos,
-                receita_acrescimo_preco=receita_acrescimo_preco,
-                taxa_parcelamento=taxa_parcelamento,
-                tarifa_venda_impostos=tarifa_venda_impostos,
-                receita_envio=receita_envio,
-                tarifas_envio=tarifas_envio,
-                custo_envio=custo_envio,
-                custo_diferencas_peso=custo_diferencas_peso,
-                cancelamentos_reembolsos=cancelamentos_reembolsos,
-                preco_unitario=preco_unitario,
-                estado_comprador=estado_comprador,
-                cidade_comprador=cidade_comprador,
-                forma_entrega=forma_entrega,
-                lucro_liquido=lucro_liquido,
-                margem_percentual=margem_percentual,
-                faixa_preco=faixa_preco,
+                company_id=final_company_id,
+                **row_data  # Dados já normalizados pelo adaptador
             )
             sales_to_insert.append(sale)
-        except (ValueError, InvalidOperation) as exc:
-            errors.append(f"Linha {line_number}: {exc}")
+        except Exception as e:
+            errors.append(f"Erro ao criar venda: {str(e)}")
 
+    # Salvar no banco de dados
+    total_rows = len(parsed_data)
     imported_count = len(sales_to_insert)
     ignored_count = total_rows - imported_count
 
@@ -573,8 +504,9 @@ def upload_submit():
         db.session.bulk_save_objects(sales_to_insert)
         db.session.commit()
 
+    # Mensagens de feedback
     summary_message = (
-        f"Importação concluída: {total_rows} linhas lidas, "
+        f"✅ Importação {marketplace_detected} concluída: {total_rows} linhas lidas, "
         f"{imported_count} importadas, {ignored_count} ignoradas."
     )
     flash(summary_message, "success" if imported_count and not errors else "warning")
@@ -583,7 +515,7 @@ def upload_submit():
         for error in errors[:5]:
             flash(error, "error")
         if len(errors) > 5:
-            flash(f"{len(errors) - 5} erros adicionais foram omitidos.", "error")
+            flash(f"⚠️ {len(errors) - 5} erros adicionais foram omitidos.", "error")
 
     redirect_params = {}
     if selected_company_id:
