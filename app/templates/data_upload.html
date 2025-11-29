@@ -5,68 +5,93 @@
 {% block content %}
 <div class="dashboard">
     <div class="dashboard-header">
-        <h1>Importação de Vendas</h1>
+        <h1>📥 Importação de Vendas</h1>
     </div>
 
-    <div class="dashboard-card">
-        <h3>📋 Formatos Aceitos</h3>
+    <!-- SEÇÃO 1: Download do Template -->
+    <div class="dashboard-card template-card">
+        <h3>📋 1. Baixe o Template Padronizado</h3>
         <p class="card-description">
-            <strong>Envie o relatório original exportado diretamente do marketplace.</strong>
-            O sistema detecta automaticamente o formato e faz o processamento.
+            <strong>IMPORTANTE:</strong> Este sistema usa um template CSV padronizado para garantir 100% de compatibilidade.
+            Você deve adaptar seus dados do marketplace para este formato antes de importar.
         </p>
 
-        <div class="format-badges">
-            <div class="format-badge">
-                <span class="badge-icon">📄</span>
-                <div>
-                    <strong>CSV - Mercado Livre</strong>
-                    <p>Relatório de vendas com encoding Latin-1</p>
+        <a href="{{ url_for('data.download_template') }}" class="btn btn-primary" download>
+            ⬇️ Baixar Template CSV
+        </a>
+
+        <div class="template-info">
+            <h4>O que está no template?</h4>
+            <ul class="info-list">
+                <li><strong>19 colunas pré-definidas</strong> em ordem fixa</li>
+                <li><strong>Linha de exemplo</strong> mostrando como preencher</li>
+                <li><strong>Campos obrigatórios:</strong> data_venda, sku, nome_produto, status_pedido, valor_total_venda</li>
+                <li><strong>Campos opcionais:</strong> dados do cliente, financeiros, geográficos</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- SEÇÃO 2: Como Adaptar -->
+    <div class="dashboard-card guide-card">
+        <h3>🔧 2. Adapte seus Dados do Marketplace</h3>
+
+        <div class="guide-steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h4>Abra o template no Excel/Google Sheets</h4>
+                    <p>O arquivo baixado pode ser editado em qualquer planilha</p>
                 </div>
             </div>
-            <div class="format-badge">
-                <span class="badge-icon">📊</span>
-                <div>
-                    <strong>XLSX - Shopee</strong>
-                    <p>Planilha de pedidos em Excel</p>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h4>Copie seus dados do marketplace</h4>
+                    <p>Exporte o relatório do Mercado Livre, Shopee ou Magalu</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h4>Cole na ordem das colunas do template</h4>
+                    <p><strong>ATENÇÃO:</strong> A ordem das colunas é fixa. Não mude!</p>
+                    <ul>
+                        <li>Coluna A (data_venda): formato YYYY-MM-DD (ex: 2025-01-15)</li>
+                        <li>Coluna B (sku): código do produto</li>
+                        <li>Coluna C (nome_produto): descrição</li>
+                        <li>Coluna D (status_pedido): pago, enviado, entregue ou cancelado</li>
+                        <li>Coluna E (valor_total_venda): valor decimal com ponto (ex: 150.50)</li>
+                        <li>Demais colunas: preencha se tiver os dados</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h4>Salve como CSV (UTF-8)</h4>
+                    <p>Excel: "Salvar Como" → CSV UTF-8<br>
+                    Google Sheets: "Baixar" → CSV</p>
                 </div>
             </div>
         </div>
-
-        <details class="help-section">
-            <summary>Como exportar do marketplace?</summary>
-            <div class="help-content">
-                <h4>Mercado Livre:</h4>
-                <ol>
-                    <li>Acesse "Vendas" → "Relatórios"</li>
-                    <li>Selecione "Relatório de vendas"</li>
-                    <li>Escolha o período e clique em "Exportar CSV"</li>
-                </ol>
-
-                <h4>Shopee:</h4>
-                <ol>
-                    <li>Acesse "Meus Pedidos" → "Exportar"</li>
-                    <li>Selecione o período desejado</li>
-                    <li>Baixe o arquivo XLSX</li>
-                </ol>
-            </div>
-        </details>
-
-        <p class="card-description">
-            <strong>Tamanho máximo:</strong> 50MB •
-            <strong>Processamento:</strong> Automático •
-            <strong>Encoding:</strong> Auto-detectado
-        </p>
     </div>
 
-    <div class="dashboard-card">
-        <h3>📤 Upload de Arquivo</h3>
-        <form method="post" enctype="multipart/form-data" class="upload-form">
+    <!-- SEÇÃO 3: Upload -->
+    <div class="dashboard-card upload-card">
+        <h3>📤 3. Faça o Upload do Arquivo Adaptado</h3>
+
+        <form method="post" enctype="multipart/form-data">
             <div class="form-group">
                 <label for="company_id">🏢 Empresa</label>
                 <select id="company_id" name="company_id" required>
                     <option value="">Selecione a empresa</option>
                     {% for company in companies %}
-                        <option value="{{ company.id }}" {% if selected_company == company.id %}selected{% endif %}>{{ company.username }}</option>
+                        <option value="{{ company.id }}" {% if selected_company == company.id %}selected{% endif %}>
+                            {{ company.username }}
+                        </option>
                     {% endfor %}
                 </select>
             </div>
@@ -76,130 +101,127 @@
                 <select id="marketplace_id" name="marketplace_id" required>
                     <option value="">Selecione o marketplace</option>
                     {% for marketplace in marketplaces %}
-                        <option value="{{ marketplace.id }}" {% if selected_marketplace == marketplace.id %}selected{% endif %}>{{ marketplace.nome }}</option>
+                        <option value="{{ marketplace.id }}">{{ marketplace.nome }}</option>
                     {% endfor %}
                 </select>
             </div>
 
             <div class="form-group">
-                <label for="file">📁 Arquivo (CSV ou XLSX)</label>
-                <input type="file" id="file" name="file" accept=".csv,.xlsx,.xls" required>
-                <small class="form-help">Formatos aceitos: CSV (Mercado Livre) ou XLSX (Shopee)</small>
+                <label for="file">📁 Arquivo CSV (adaptado do template)</label>
+                <input type="file" id="file" name="file" accept=".csv" required>
+                <small class="form-help">Apenas arquivos CSV no formato do template</small>
             </div>
 
-            <button type="submit" class="btn btn-primary">🚀 Importar vendas</button>
+            <button type="submit" class="btn btn-primary">🚀 Importar Dados</button>
         </form>
+    </div>
 
-        <p class="card-description" style="margin-top: 20px;">
-            Precisa conferir os registros importados?
-            <a href="{{ url_for('data.sales_list', company_id=selected_company if selected_company else None) }}">
-                Acesse a lista de vendas →
-            </a>
-        </p>
+    <!-- Dicas Importantes -->
+    <div class="dashboard-card tips-card">
+        <h3>💡 Dicas Importantes</h3>
+        <ul class="tips-list">
+            <li><strong>Não altere a ordem das colunas</strong> - o sistema lê pela posição</li>
+            <li><strong>Não remova o cabeçalho</strong> - ele é ignorado mas ajuda na edição</li>
+            <li><strong>Use formato de data YYYY-MM-DD</strong> (ano-mês-dia com hífens)</li>
+            <li><strong>Valores decimais com ponto</strong>, não vírgula (150.50, não 150,50)</li>
+            <li><strong>Campos vazios são OK</strong> - deixe em branco se não tiver o dado</li>
+            <li><strong>Salve em UTF-8</strong> para evitar problemas com acentos</li>
+        </ul>
     </div>
 </div>
 
 <style>
-.format-badges {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1rem;
-    margin: 1.5rem 0;
+.template-card {
+    background: linear-gradient(135deg, rgba(52, 191, 163, 0.1), rgba(91, 155, 213, 0.1));
+    border-left: 4px solid #34BFA3;
 }
 
-.format-badge {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+.template-info {
+    margin-top: 1.5rem;
     padding: 1rem;
     background: var(--surface-color, #f8f9fa);
-    border: 1px solid var(--card-border, #e0e0e0);
     border-radius: 8px;
 }
 
-.badge-icon {
-    font-size: 2rem;
-    flex-shrink: 0;
+.template-info h4 {
+    margin: 0 0 0.75rem 0;
+    color: var(--text-primary);
 }
 
-.format-badge strong {
-    display: block;
-    color: var(--text-primary, #2c3e50);
-    margin-bottom: 0.25rem;
-}
-
-.format-badge p {
+.info-list {
     margin: 0;
-    font-size: 0.875rem;
-    color: var(--text-secondary, #6c757d);
-}
-
-.help-section {
-    margin: 1.5rem 0;
-    border: 1px solid var(--card-border, #e0e0e0);
-    border-radius: 8px;
-    padding: 1rem;
-    background: var(--surface-color, #f8f9fa);
-}
-
-.help-section summary {
-    cursor: pointer;
-    font-weight: 600;
-    color: var(--text-primary, #2c3e50);
-    user-select: none;
-    list-style: none;
-}
-
-.help-section summary::-webkit-details-marker {
-    display: none;
-}
-
-.help-section summary::before {
-    content: '▶ ';
-    display: inline-block;
-    transition: transform 0.2s;
-}
-
-.help-section[open] summary::before {
-    transform: rotate(90deg);
-}
-
-.help-content {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--card-border, #e0e0e0);
-}
-
-.help-content h4 {
-    color: var(--text-primary, #2c3e50);
-    margin: 1rem 0 0.5rem 0;
-    font-size: 1rem;
-}
-
-.help-content h4:first-child {
-    margin-top: 0;
-}
-
-.help-content ol {
-    margin: 0.5rem 0;
     padding-left: 1.5rem;
 }
 
-.help-content li {
+.info-list li {
     margin: 0.5rem 0;
-    color: var(--text-secondary, #6c757d);
+    color: var(--text-secondary);
 }
 
-.form-help {
-    display: block;
-    margin-top: 0.5rem;
-    font-size: 0.875rem;
-    color: var(--text-secondary, #6c757d);
-    font-style: italic;
-}
-
-.upload-form {
+.guide-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
     margin-top: 1rem;
+}
+
+.step {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #8082A6, #5B9BD5);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.step-content h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+}
+
+.step-content p,
+.step-content ul {
+    margin: 0.5rem 0;
+    color: var(--text-secondary);
+}
+
+.step-content ul {
+    padding-left: 1.5rem;
+}
+
+.tips-list {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.tips-list li {
+    margin: 0.75rem 0;
+    color: var(--text-secondary);
+}
+
+.tips-list strong {
+    color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+    .step {
+        flex-direction: column;
+    }
+
+    .step-number {
+        align-self: flex-start;
+    }
 }
 </style>
 {% endblock %}

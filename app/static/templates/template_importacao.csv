@@ -1,0 +1,2 @@
+data_venda,sku,nome_produto,status_pedido,valor_total_venda,numero_pedido,unidades,preco_unitario,comprador,cpf_comprador,estado_comprador,cidade_comprador,forma_entrega,receita_produtos,taxa_parcelamento,tarifa_venda_impostos,custo_envio,lucro_liquido,margem_percentual
+2025-01-15,SKU001,Produto Exemplo,pago,100.50,PED-001,2,50.25,Cliente Exemplo,12345678900,SP,São Paulo,PAC,100.50,0,5.00,10.00,85.50,85.00
