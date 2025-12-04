@@ -1,68 +1,90 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Sistema Flask{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
+
 <body data-theme="light" class="{% if current_user.is_authenticated %}app-layout{% else %}auth-layout{% endif %}">
     {% if current_user.is_authenticated %}
     <nav class="main-nav">
         <div class="nav-wrapper">
             <div class="nav-brand">
+                <button type="button" class="theme-toggle" id="themeToggle" aria-label="Alternar tema">
+                    <span id="themeToggleIcon" aria-hidden="true">🌞</span>
+                </button>
                 {% if current_user.is_manager() %}
-                    {% if current_user.logo_filename %}
-                        <img src="{{ url_for('static', filename='uploads/logos/' ~ current_user.logo_filename) }}" alt="Logo {{ current_user.username }}" class="nav-user-logo">
-                    {% else %}
-                        <div class="nav-user-logo-placeholder">{{ current_user.username[0].upper() }}</div>
-                    {% endif %}
-                    <div>
-                        <div class="nav-title">{{ current_user.username }}</div>
-                        <div class="nav-subtitle">Alyal Insights</div>
-                    </div>
+                {% if current_user.logo_filename %}
+                <img src="{{ url_for('static', filename='uploads/logos/' ~ current_user.logo_filename) }}"
+                    alt="Logo {{ current_user.username }}" class="nav-user-logo">
                 {% else %}
-                    {% if current_user.logo_filename %}
-                        <img src="{{ url_for('static', filename='uploads/logos/' ~ current_user.logo_filename) }}" alt="Logo {{ current_user.username }}" class="nav-user-logo-large">
-                    {% else %}
-                        <div class="nav-title">{{ current_user.username }}</div>
-                    {% endif %}
+                <div class="nav-user-logo-placeholder">{{ current_user.username[0].upper() }}</div>
                 {% endif %}
+                <div>
+                    <div class="nav-title">{{ current_user.username }}</div>
+                    <div class="nav-subtitle">Alyal Insights</div>
+                </div>
+                {% else %}
+                {% if current_user.logo_filename %}
+                <img src="{{ url_for('static', filename='uploads/logos/' ~ current_user.logo_filename) }}"
+                    alt="Logo {{ current_user.username }}" class="nav-user-logo-large">
+                {% else %}
+                <div class="nav-title">{{ current_user.username }}</div>
+                {% endif %}
+                {% endif %}
+
             </div>
             {% set current_company_id = None %}
             {% if current_user.is_manager() %}
-                {% if selected_company is defined and selected_company %}
-                    {% set current_company_id = selected_company %}
-                {% elif request.args.get('company_id') %}
-                    {% set current_company_id = request.args.get('company_id') %}
-                {% endif %}
+            {% if selected_company is defined and selected_company %}
+            {% set current_company_id = selected_company %}
+            {% elif request.args.get('company_id') %}
+            {% set current_company_id = request.args.get('company_id') %}
+            {% endif %}
             {% endif %}
 
             <ul class="nav-links">
                 {% if current_user.is_manager() %}
-                    {# Menu para Gestores #}
-                    <li><a href="{{ url_for('dashboard.manager_dashboard', **({'company_id': current_company_id} if current_company_id else {})) }}">Dashboard</a></li>
-                    <li><a href="{{ url_for('dashboard.consolidated_dashboard', **({'company_id': current_company_id} if current_company_id else {})) }}">Visão Consolidada</a></li>
-                    <li><a href="{{ url_for('dashboard.abc_view', **({'company_id': current_company_id} if current_company_id else {})) }}">Produtos (ABC)</a></li>
-                    <li><a href="{{ url_for('dashboard.status_view', **({'company_id': current_company_id} if current_company_id else {})) }}">Status</a></li>
-                    <li><a href="{{ url_for('dashboard.analytics_dashboard', **({'company_id': current_company_id} if current_company_id else {})) }}">Análises Avançadas</a></li>
-                    <li><a href="{{ url_for('dashboard.manage_companies') }}">Empresas</a></li>
-                    <li><a href="{{ url_for('data.sales_list', **({'company_id': current_company_id} if current_company_id else {})) }}">Vendas</a></li>
-                    <li><a href="{{ url_for('data.upload_form', **({'company_id': current_company_id} if current_company_id else {})) }}">Importar Dados</a></li>
+                {# Menu para Gestores #}
+                <li><a
+                        href="{{ url_for('dashboard.manager_dashboard', **({'company_id': current_company_id} if current_company_id else {})) }}">Dashboard</a>
+                </li>
+                <li><a
+                        href="{{ url_for('dashboard.consolidated_dashboard', **({'company_id': current_company_id} if current_company_id else {})) }}">Visão
+                        Consolidada</a></li>
+                <li><a
+                        href="{{ url_for('dashboard.abc_view', **({'company_id': current_company_id} if current_company_id else {})) }}">Produtos
+                        (ABC)</a></li>
+
+                <li><a
+                        href="{{ url_for('dashboard.analytics_dashboard', **({'company_id': current_company_id} if current_company_id else {})) }}">Análises
+                        Avançadas</a></li>
+                <li><a
+                        href="{{ url_for('data.sales_list', **({'company_id': current_company_id} if current_company_id else {})) }}">Vendas</a>
+                </li>
+                <li class="nav-dropdown">
+                    <button class="nav-dropdown-toggle">Configurações</button>
+                    <ul class="nav-dropdown-menu">
+                        <li><a href="{{ url_for('dashboard.manage_companies') }}">Empresas</a></li>
+                        <li><a
+                                href="{{ url_for('data.upload_form', **({'company_id': current_company_id} if current_company_id else {})) }}">Importar
+                                Dados</a></li>
+                    </ul>
+                </li>
                 {% else %}
-                    {# Menu para Clientes #}
-                    <li><a href="{{ url_for('dashboard.user_dashboard') }}">Dashboard</a></li>
-                    <li><a href="{{ url_for('dashboard.consolidated_dashboard') }}">Visão Consolidada</a></li>
-                    <li><a href="{{ url_for('dashboard.abc_view') }}">Produtos (ABC)</a></li>
-                    <li><a href="{{ url_for('dashboard.status_view') }}">Status</a></li>
-                    <li><a href="{{ url_for('dashboard.analytics_dashboard') }}">Análises Avançadas</a></li>
-                    <li><a href="{{ url_for('dashboard.user_settings') }}">Configurações</a></li>
+                {# Menu para Clientes #}
+                <li><a href="{{ url_for('dashboard.user_dashboard') }}">Dashboard</a></li>
+                <li><a href="{{ url_for('dashboard.consolidated_dashboard') }}">Visão Consolidada</a></li>
+                <li><a href="{{ url_for('dashboard.abc_view') }}">Produtos (ABC)</a></li>
+
+                <li><a href="{{ url_for('dashboard.analytics_dashboard') }}">Análises Avançadas</a></li>
+                <li><a href="{{ url_for('dashboard.user_settings') }}">Configurações</a></li>
                 {% endif %}
                 <li><a href="{{ url_for('auth.logout') }}" class="nav-logout">Sair</a></li>
             </ul>
-            <button type="button" class="theme-toggle" id="themeToggle" aria-label="Alternar tema">
-                <span id="themeToggleIcon" aria-hidden="true">🌞</span>
-            </button>
         </div>
     </nav>
     {% else %}
@@ -72,18 +94,20 @@
     {% endif %}
     <main class="main-content">
         {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-container">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                </div>
-            {% endif %}
+        {% if messages %}
+        <div class="flash-container">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% endwith %}
         {% block content %}{% endblock %}
     </main>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chart-fullscreen.js') }}"></script>
     {% block extra_js %}{% endblock %}
 </body>
+
 </html>

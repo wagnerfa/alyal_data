@@ -14,6 +14,7 @@ from app.services.metrics import (
     cohort_analysis,
     get_data_boundaries,
     get_kpis,
+    get_most_recent_month_range,
     monthly_growth_analysis,
     monthly_revenue_totals,
     monthly_sales_counts,
@@ -50,6 +51,7 @@ def _parse_date(value):
         return None
 
 
+
 def _get_filters_from_request():
     source = request.values if request.method == 'POST' else request.args
     start_raw = source.get('start_date')
@@ -57,15 +59,35 @@ def _get_filters_from_request():
     marketplace_id = source.get('marketplace_id', type=int)
     company_id = source.get('company_id', type=int)
 
+    marketplace_id = marketplace_id if marketplace_id and marketplace_id > 0 else None
+    company_id = company_id if company_id and company_id > 0 else None
+
+    # Se ambas as datas foram fornecidas, use-as
+    if start_raw and end_raw:
+        start_date = _parse_date(start_raw)
+        end_date = _parse_date(end_raw)
+        if start_date and end_date:
+            if start_date > end_date:
+                start_date, end_date = end_date, start_date
+            return start_date, end_date, marketplace_id, company_id
+    
+    # Se nenhuma data foi fornecida, use o mês mais recente com vendas
+    if not start_raw and not end_raw:
+        recent_start, recent_end = get_most_recent_month_range(
+            db.session, marketplace_id, company_id
+        )
+        if recent_start and recent_end:
+            return recent_start, recent_end, marketplace_id, company_id
+    
+    # Fallback para comportamento anterior (últimos 30 dias)
     end_date = _parse_date(end_raw) or date.today()
     start_date = _parse_date(start_raw) or (end_date - timedelta(days=30))
 
     if start_date > end_date:
         start_date, end_date = end_date, start_date
 
-    marketplace_id = marketplace_id if marketplace_id and marketplace_id > 0 else None
-    company_id = company_id if company_id and company_id > 0 else None
     return start_date, end_date, marketplace_id, company_id
+
 
 
 def _get_previous_period(start_date, end_date):

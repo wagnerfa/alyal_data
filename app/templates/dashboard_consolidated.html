@@ -71,50 +71,50 @@
 </div>
 
 <style>
-/* Grid 2x3 Responsivo */
-.consolidated-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 1.5rem;
-    margin-top: 2rem;
-}
-
-@media (min-width: 1200px) {
+    /* Grid 2x3 Responsivo */
     .consolidated-grid {
-        grid-template-columns: repeat(2, 1fr);
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
     }
-}
 
-.mini-chart-card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 8px;
-    padding: 1.25rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
+    @media (min-width: 1200px) {
+        .consolidated-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
 
-.mini-chart-card h3 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.1rem;
-    color: var(--text-primary);
-}
+    .mini-chart-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 8px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
 
-.mini-chart-card .card-description {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    margin: 0 0 1rem 0;
-}
+    .mini-chart-card h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.1rem;
+        color: var(--text-primary);
+    }
 
-.mini-chart-container {
-    height: 220px;
-    position: relative;
-}
+    .mini-chart-card .card-description {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin: 0 0 1rem 0;
+    }
 
-.header-subtitle {
-    font-size: 0.95rem;
-    color: var(--text-secondary);
-    margin-top: 0.5rem;
-}
+    .mini-chart-container {
+        height: 220px;
+        position: relative;
+    }
+
+    .header-subtitle {
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        margin-top: 0.5rem;
+    }
 </style>
 {% endblock %}
 
@@ -175,9 +175,9 @@
     };
 
     // 1. Faturamento Diário
-    const dailyLabels = {{ daily_labels|tojson }};
-    const dailyValues = {{ daily_values|tojson }};
-    const dailyMA7 = {{ daily_ma7|tojson }};
+    const dailyLabels = {{ daily_labels| tojson }};
+    const dailyValues = {{ daily_values| tojson }};
+    const dailyMA7 = {{ daily_ma7| tojson }};
     const dailyCtx = document.getElementById('dailySalesChart');
     if (dailyCtx && dailyValues.length) {
         // Mostrar apenas últimos 30 dias para clareza
@@ -225,8 +225,8 @@
     }
 
     // 2. Top 5 Produtos
-    const top5Labels = {{ top5_labels|tojson }};
-    const top5Values = {{ top5_values|tojson }};
+    const top5Labels = {{ top5_labels| tojson }};
+    const top5Values = {{ top5_values| tojson }};
     const top5Ctx = document.getElementById('top5ProductsChart');
     if (top5Ctx && top5Values.length) {
         new Chart(top5Ctx, {
@@ -274,8 +274,8 @@
     }
 
     // 3. Vendas por Hora
-    const hourlyLabels = {{ hourly_labels|tojson }};
-    const hourlyValues = {{ hourly_values|tojson }};
+    const hourlyLabels = {{ hourly_labels| tojson }};
+    const hourlyValues = {{ hourly_values| tojson }};
     const hourlyCtx = document.getElementById('hourlySalesChart');
     if (hourlyCtx && hourlyValues.length) {
         new Chart(hourlyCtx, {
@@ -307,8 +307,8 @@
     }
 
     // 4. Vendas por Dia da Semana
-    const weeklyLabels = {{ weekly_labels|tojson }};
-    const weeklyValues = {{ weekly_values|tojson }};
+    const weeklyLabels = {{ weekly_labels| tojson }};
+    const weeklyValues = {{ weekly_values| tojson }};
     const weeklyCtx = document.getElementById('weeklySalesChart');
     if (weeklyCtx && weeklyValues.length) {
         new Chart(weeklyCtx, {
@@ -327,8 +327,8 @@
     }
 
     // 5. Top 5 Estados
-    const statesLabels = {{ states_labels|tojson }};
-    const statesRevenues = {{ states_revenues|tojson }};
+    const statesLabels = {{ states_labels| tojson }};
+    const statesRevenues = {{ states_revenues| tojson }};
     const statesCtx = document.getElementById('topStatesChart');
     if (statesCtx && statesRevenues.length) {
         new Chart(statesCtx, {
@@ -369,8 +369,8 @@
     }
 
     // 6. Faixa de Preço
-    const priceLabels = {{ price_labels|tojson }};
-    const priceRevenues = {{ price_revenues|tojson }};
+    const priceLabels = {{ price_labels| tojson }};
+    const priceRevenues = {{ price_revenues| tojson }};
     const priceCtx = document.getElementById('priceRangeChart');
     if (priceCtx && priceRevenues.length) {
         new Chart(priceCtx, {
@@ -403,5 +403,73 @@
             }
         });
     }
+
+    // Adicionar botões de fullscreen aos mini-charts
+    document.addEventListener('DOMContentLoaded', function () {
+        const chartMappings = [
+            { canvas: 'dailySalesChart', title: 'Faturamento Diário' },
+            { canvas: 'top5ProductsChart', title: 'Top 5 Produtos' },
+            { canvas: 'hourlySalesChart', title: 'Vendas por Hora' },
+            { canvas: 'weeklySalesChart', title: 'Vendas por Dia da Semana' },
+            { canvas: 'topStatesChart', title: 'Top 5 Estados' },
+            { canvas: 'priceRangeChart', title: 'Distribuição por Preço' }
+        ];
+
+        chartMappings.forEach(mapping => {
+            const canvas = document.getElementById(mapping.canvas);
+            if (!canvas) return;
+
+            const card = canvas.closest('.mini-chart-card');
+            if (!card) return;
+
+            const h3 = card.querySelector('h3');
+            const description = card.querySelector('.card-description');
+
+            if (!h3) return;
+
+            // Criar estrutura de header
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'chart-header';
+
+            const textDiv = document.createElement('div');
+            textDiv.className = 'chart-header-text';
+
+            // Mover h3 e description para textDiv
+            textDiv.appendChild(h3.cloneNode(true));
+            if (description) {
+                textDiv.appendChild(description.cloneNode(true));
+            }
+
+            // Criar botão de fullscreen
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'chart-fullscreen-btn';
+            button.setAttribute('data-chart-fullscreen', '');
+            button.setAttribute('data-chart-canvas', mapping.canvas);
+            button.setAttribute('data-chart-title', mapping.title);
+            button.setAttribute('aria-label', 'Ver em tela cheia');
+            button.setAttribute('title', 'Ver em tela cheia');
+            button.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zm15 0a.5.5 0 0 1 .5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z"/>
+                </svg>
+            `;
+
+            headerDiv.appendChild(textDiv);
+            headerDiv.appendChild(button);
+
+            // Remover h3 e description originais
+            h3.remove();
+            if (description) description.remove();
+
+            // Inserir header no início do card
+            card.insertBefore(headerDiv, card.firstChild);
+        });
+
+        // Reinicializar event listeners do fullscreen
+        if (window.ChartFullscreen && window.ChartFullscreen.init) {
+            window.ChartFullscreen.init();
+        }
+    });
 </script>
 {% endblock %}

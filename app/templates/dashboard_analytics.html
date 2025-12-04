@@ -35,10 +35,12 @@
         <div class="dashboard-grid">
             {% set title = 'Distribuição por Faixa de Preço' %}
             {% set canvas_id = 'priceRangeChart' %}
-            {% set description = 'Faturamento por categoria de preço (Baixo < R$50, Médio R$50-200, Alto > R$200).' %}
-            {% set height = 260 %}
-            {% include '_partials/_chart_block.html' %}
+            {% set description = 'Faturamento por categoria de preço (Baixo < R$50, Médio R$50-200, Alto> R$200).' %}
+                {% set height = 260 %}
+                {% include '_partials/_chart_block.html' %}
+        </div>
 
+        <div class="dashboard-grid" style="grid-template-columns: 1fr; margin-top: 1.5rem;">
             <div class="dashboard-card">
                 <h3>Produtos com Melhor Margem</h3>
                 <p class="card-description">Top 10 produtos com maior margem de lucro.</p>
@@ -140,7 +142,8 @@
                             {% for customer in rfm_data %}
                             <tr>
                                 <td>{{ customer.comprador[:30] }}</td>
-                                <td><span class="badge badge-{{ customer.segment.lower().replace(' ', '-') }}">{{ customer.segment }}</span></td>
+                                <td><span class="badge badge-{{ customer.segment.lower().replace(' ', '-') }}">{{
+                                        customer.segment }}</span></td>
                                 <td>{{ customer.recency }}</td>
                                 <td>{{ customer.frequency }}</td>
                                 <td>{{ customer.monetary | currency_br }}</td>
@@ -181,12 +184,13 @@
                             <td><strong>{{ cohort_labels[i] }}</strong></td>
                             <td>{{ cohort_sizes[i] }}</td>
                             {% for j in range(cohort_period_labels|length) %}
-                            <td class="cohort-cell" data-rate="{{ cohort_matrix[i][j] if j < (cohort_matrix[i]|length) else 0 }}">
-                                {% if j < (cohort_matrix[i]|length) and cohort_matrix[i][j] > 0 %}
+                            <td class="cohort-cell"
+                                data-rate="{{ cohort_matrix[i][j] if j < (cohort_matrix[i]|length) else 0 }}">
+                                {% if j < (cohort_matrix[i]|length) and cohort_matrix[i][j]> 0 %}
                                     {{ cohort_matrix[i][j] | decimal_br(1) }}%
-                                {% else %}
+                                    {% else %}
                                     —
-                                {% endif %}
+                                    {% endif %}
                             </td>
                             {% endfor %}
                         </tr>
@@ -203,153 +207,153 @@
 </div>
 
 <style>
-.dashboard-section {
-    margin-top: 2rem;
-}
+    .dashboard-section {
+        margin-top: 2rem;
+    }
 
-.dashboard-section h2 {
-    margin-bottom: 1rem;
-    color: var(--text-primary);
-    font-size: 1.5rem;
-}
+    .dashboard-section h2 {
+        margin-bottom: 1rem;
+        color: var(--text-primary);
+        font-size: 1.5rem;
+    }
 
-.kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
-}
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
 
-.kpi-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
+    .kpi-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
 
-.kpi-label {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-}
+    .kpi-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
 
-.kpi-value {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
+    .kpi-value {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
 
-.table-responsive {
-    overflow-x: auto;
-}
+    .table-responsive {
+        overflow-x: auto;
+    }
 
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 1rem;
-}
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+    }
 
-.data-table th,
-.data-table td {
-    padding: 0.75rem;
-    text-align: left;
-    border-bottom: 1px solid var(--card-border);
-}
+    .data-table th,
+    .data-table td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid var(--card-border);
+    }
 
-.data-table th {
-    font-weight: 600;
-    color: var(--text-primary);
-    background: var(--background);
-}
+    .data-table th {
+        font-weight: 600;
+        color: var(--text-primary);
+        background: var(--background);
+    }
 
-.data-table tbody tr:hover {
-    background: var(--hover-bg);
-}
+    .data-table tbody tr:hover {
+        background: var(--hover-bg);
+    }
 
-.badge {
-    display: inline-block;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
 
-.badge-champions {
-    background: #34BFA3;
-    color: white;
-}
+    .badge-champions {
+        background: #34BFA3;
+        color: white;
+    }
 
-.badge-loyal-customers {
-    background: #5B9BD5;
-    color: white;
-}
+    .badge-loyal-customers {
+        background: #5B9BD5;
+        color: white;
+    }
 
-.badge-new-customers {
-    background: #F6C23E;
-    color: #333;
-}
+    .badge-new-customers {
+        background: #F6C23E;
+        color: #333;
+    }
 
-.badge-potential-loyalists {
-    background: #8082A6;
-    color: white;
-}
+    .badge-potential-loyalists {
+        background: #8082A6;
+        color: white;
+    }
 
-.badge-at-risk {
-    background: #ED7D31;
-    color: white;
-}
+    .badge-at-risk {
+        background: #ED7D31;
+        color: white;
+    }
 
-.badge-cannot-lose-them {
-    background: #C00000;
-    color: white;
-}
+    .badge-cannot-lose-them {
+        background: #C00000;
+        color: white;
+    }
 
-.badge-lost {
-    background: #666;
-    color: white;
-}
+    .badge-lost {
+        background: #666;
+        color: white;
+    }
 
-.badge-others {
-    background: #E0E0E0;
-    color: #333;
-}
+    .badge-others {
+        background: #E0E0E0;
+        color: #333;
+    }
 
-.cohort-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 1rem;
-    font-size: 0.875rem;
-}
+    .cohort-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        font-size: 0.875rem;
+    }
 
-.cohort-table th,
-.cohort-table td {
-    padding: 0.5rem;
-    text-align: center;
-    border: 1px solid var(--card-border);
-}
+    .cohort-table th,
+    .cohort-table td {
+        padding: 0.5rem;
+        text-align: center;
+        border: 1px solid var(--card-border);
+    }
 
-.cohort-table th {
-    font-weight: 600;
-    background: var(--background);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
+    .cohort-table th {
+        font-weight: 600;
+        background: var(--background);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
 
-.cohort-table tbody tr:first-child th {
-    text-align: left;
-}
+    .cohort-table tbody tr:first-child th {
+        text-align: left;
+    }
 
-.cohort-cell {
-    background: linear-gradient(to right, rgba(52, 191, 163, 0.1) 0%, rgba(52, 191, 163, 0.8) 100%);
-}
+    .cohort-cell {
+        background: linear-gradient(to right, rgba(52, 191, 163, 0.1) 0%, rgba(52, 191, 163, 0.8) 100%);
+    }
 
-.cohort-cell[data-rate="100"] {
-    background: rgba(52, 191, 163, 0.8);
-    font-weight: 600;
-}
+    .cohort-cell[data-rate="100"] {
+        background: rgba(52, 191, 163, 0.8);
+        font-weight: 600;
+    }
 
-.cohort-cell[data-rate="0"] {
-    background: transparent;
-}
+    .cohort-cell[data-rate="0"] {
+        background: transparent;
+    }
 </style>
 {% endblock %}
 
@@ -386,8 +390,8 @@
     };
 
     // State Revenue Chart
-    const stateLabels = {{ state_labels|tojson }};
-    const stateRevenues = {{ state_revenues|tojson }};
+    const stateLabels = {{ state_labels| tojson }};
+    const stateRevenues = {{ state_revenues| tojson }};
     const stateCtx = document.getElementById('stateRevenueChart');
     if (stateCtx && Array.isArray(stateRevenues) && stateRevenues.length) {
         new Chart(stateCtx, {
@@ -428,8 +432,8 @@
     }
 
     // City Revenue Chart
-    const cityLabels = {{ city_labels|tojson }};
-    const cityRevenues = {{ city_revenues|tojson }};
+    const cityLabels = {{ city_labels| tojson }};
+    const cityRevenues = {{ city_revenues| tojson }};
     const cityCtx = document.getElementById('cityRevenueChart');
     if (cityCtx && Array.isArray(cityRevenues) && cityRevenues.length) {
         new Chart(cityCtx, {
@@ -470,8 +474,8 @@
     }
 
     // Price Range Chart
-    const priceRangeLabels = {{ price_range_labels|tojson }};
-    const priceRangeRevenues = {{ price_range_revenues|tojson }};
+    const priceRangeLabels = {{ price_range_labels| tojson }};
+    const priceRangeRevenues = {{ price_range_revenues| tojson }};
     const priceRangeCtx = document.getElementById('priceRangeChart');
     if (priceRangeCtx && Array.isArray(priceRangeRevenues) && priceRangeRevenues.length) {
         new Chart(priceRangeCtx, {
@@ -508,7 +512,7 @@
     }
 
     // RFM Segment Chart
-    const rfmSegments = {{ rfm_segments|tojson }};
+    const rfmSegments = {{ rfm_segments| tojson }};
     const rfmLabels = Object.keys(rfmSegments);
     const rfmValues = Object.values(rfmSegments);
     const rfmCtx = document.getElementById('rfmSegmentChart');

@@ -266,6 +266,39 @@ def get_data_boundaries(
     return min_date, max_date
 
 
+def get_most_recent_month_range(
+    session: Session,
+    marketplace_id: Optional[int] = None,
+    company_id: Optional[int] = None,
+):
+    """
+    Retorna o primeiro e último dia do mês mais recente com vendas.
+    Útil para definir filtros de data padrão.
+    """
+    query = session.query(func.max(Sale.data_venda))
+    if marketplace_id:
+        query = query.filter(Sale.marketplace_id == marketplace_id)
+    if company_id:
+        query = query.filter(Sale.company_id == company_id)
+    
+    max_date = query.scalar()
+    if not max_date:
+        return None, None
+    
+    # Primeiro dia do mês
+    start_of_month = max_date.replace(day=1)
+    
+    # Último dia do mês
+    if max_date.month == 12:
+        end_of_month = max_date.replace(day=31)
+    else:
+        # Primeiro dia do próximo mês - 1 dia
+        next_month = max_date.replace(month=max_date.month + 1, day=1)
+        end_of_month = next_month - timedelta(days=1)
+    
+    return start_of_month, end_of_month
+
+
 def top_products_by_revenue(
     session: Session,
     start,
